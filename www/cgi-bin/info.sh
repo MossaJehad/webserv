@@ -1,0 +1,15 @@
+#!/bin/sh
+echo "Content-Type: text/html"
+echo ""
+echo "<!DOCTYPE html>"
+echo "<html><head><meta charset='UTF-8'><title>Shell CGI Info</title>"
+echo "<style>body{background:#0f1117;color:#e0e0e0;font-family:monospace;padding:40px;}"
+echo "h1{color:#7eb3ff;}pre{background:#1a1a2e;padding:16px;border-radius:4px;overflow:auto;}"
+echo "a{color:#7eb3ff;text-decoration:none;}</style>"
+echo "</head><body>"
+echo "<h1>Shell CGI — Environment</h1>"
+echo "<pre>"
+env | sort
+echo "</pre>"
+echo "<p><a href='/'>← Back</a></p>"
+echo "</body></html>"

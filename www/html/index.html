@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>webserv — C++98 HTTP Server</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0f1117;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        header {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            padding: 40px;
+            text-align: center;
+            border-bottom: 1px solid #2a2a4a;
+        }
+        header h1 { font-size: 2.5rem; color: #7eb3ff; letter-spacing: 2px; }
+        header p  { margin-top: 10px; color: #888; font-size: 1rem; }
+        .badge {
+            display: inline-block; margin: 4px;
+            background: #1e3a5f; color: #7eb3ff;
+            border: 1px solid #2d5a8e; border-radius: 4px;
+            padding: 2px 10px; font-size: 0.8rem;
+        }
+        .container { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 30px; }
+        .card {
+            background: #1a1a2e;
+            border: 1px solid #2a2a4a;
+            border-radius: 8px;
+            padding: 24px;
+            transition: border-color 0.2s;
+        }
+        .card:hover { border-color: #4a6fa5; }
+        .card h2 { color: #7eb3ff; margin-bottom: 12px; font-size: 1.1rem; }
+        .card p  { color: #999; font-size: 0.9rem; line-height: 1.6; }
+        .card .links { margin-top: 16px; }
+        .card .links a {
+            display: inline-block; margin: 4px 4px 0 0;
+            background: #0d2137; color: #7eb3ff;
+            border: 1px solid #2d5a8e; border-radius: 4px;
+            padding: 5px 12px; font-size: 0.85rem;
+            text-decoration: none; transition: background 0.2s;
+        }
+        .card .links a:hover { background: #1e3a5f; }
+        .upload-form { margin-top: 30px; background: #1a1a2e; border: 1px solid #2a2a4a; border-radius: 8px; padding: 24px; }
+        .upload-form h2 { color: #7eb3ff; margin-bottom: 16px; }
+        .upload-form input[type="file"] { color: #ccc; font-size: 0.9rem; }
+        .upload-form button {
+            margin-top: 12px; padding: 8px 20px;
+            background: #1e3a5f; color: #7eb3ff;
+            border: 1px solid #2d5a8e; border-radius: 4px;
+            cursor: pointer; font-size: 0.9rem;
+        }
+        .upload-form button:hover { background: #2d5a8e; }
+        footer { text-align: center; padding: 20px; color: #444; font-size: 0.8rem; border-top: 1px solid #1a1a2e; }
+    </style>
+</head>
+<body>
+<header>
+    <h1>webserv</h1>
+    <p>A fully non-blocking HTTP/1.1 server written in C++98</p>
+    <div style="margin-top:14px;">
+        <span class="badge">C++98</span>
+        <span class="badge">poll()</span>
+        <span class="badge">Non-Blocking I/O</span>
+        <span class="badge">CGI</span>
+        <span class="badge">File Upload</span>
+        <span class="badge">Virtual Hosts</span>
+    </div>
+</header>
+
+<div class="container">
+    <div class="grid">
+        <div class="card">
+            <h2>Static Files</h2>
+            <p>Serving static content from the filesystem with proper MIME types and HTTP status codes.</p>
+            <div class="links">
+                <a href="/">Home</a>
+                <a href="/files/">Browse /files/</a>
+            </div>
+        </div>
+        <div class="card">
+            <h2>CGI Scripts</h2>
+            <p>Execute Python and shell scripts via CGI. Environment variables, query strings, and POST bodies are all forwarded.</p>
+            <div class="links">
+                <a href="/cgi-bin/hello.py">hello.py</a>
+                <a href="/cgi-bin/info.sh">info.sh</a>
+                <a href="/cgi-bin/hello.py?name=42">hello.py?name=42</a>
+            </div>
+        </div>
+        <div class="card">
+            <h2>Directory Listing</h2>
+            <p>Autoindex is enabled on <code>/files/</code> — browse files with timestamps and sizes.</p>
+            <div class="links">
+                <a href="/files/">Open /files/</a>
+            </div>
+        </div>
+        <div class="card">
+            <h2>Error Pages</h2>
+            <p>Custom error pages for 400, 403, 404, 405, 413, and 500 responses.</p>
+            <div class="links">
+                <a href="/does-not-exist">Trigger 404</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="upload-form">
+        <h2>File Upload (POST multipart/form-data)</h2>
+        <p style="color:#888;font-size:0.85rem;margin-bottom:14px;">
+            Files are saved to <code>www/uploads/</code>. Max body size: 20MB.
+        </p>
+        <form action="/upload/" method="POST" enctype="multipart/form-data">
+            <input type="file" name="file" multiple />
+            <br>
+            <button type="submit">Upload</button>
+        </form>
+    </div>
+</div>
+
+<footer>webserv &mdash; 42 School Project &mdash; C++98</footer>
+</body>
+</html>
