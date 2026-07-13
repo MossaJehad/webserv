@@ -1,17 +1,16 @@
 #include "Config.hpp"
 
-// تهيئة إعدادات الـ Location الافتراضية
 LocationConfig::LocationConfig() 
     : path(""), 
       root(""), 
-      index("index.html"), // افتراضياً نبحث عن index.html
-      autoindex(false),    // إغلاق استعراض المجلدات حماية للسيرفر
+      autoindex(false),
       return_code(0),
       return_url(""), 
       cgi_ext(""), 
       cgi_path("") 
 {
-    // بشكل افتراضي، مسموح فقط الـ GET إذا ما حدد المستخدم غير هيك
+    // القيمة الافتراضية القياسية داخل الفيكتور
+    index.push_back("index.html");
     allowed_methods.push_back("GET");
 }
 

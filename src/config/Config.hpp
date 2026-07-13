@@ -10,8 +10,8 @@ class LocationConfig {
 public:
     std::string              path;             // الرابط المستهدف (مثل "/uploads")
     std::string              root;             // المجلد الحقيقي على القرص (مثل "./www")
-    std::string              index;            // الملف الافتراضي (مثل "index.html")
-    bool                     autoindex;        // استعراض المجلدات (true/false)
+	std::vector<std::string> index; // تعديل من std::string إلى vector   
+	bool                     autoindex;        // استعراض المجلدات (true/false)
     std::vector<std::string> allowed_methods;  // الطرق المسموحة ("GET", "POST", "DELETE")
     
     // إعادة التوجيه (Redirection)
