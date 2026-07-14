@@ -1,4 +1,4 @@
-#include "Config.hpp"
+ #include "Config.hpp"
 
 LocationConfig::LocationConfig() 
     : path(""), 

@@ -77,16 +77,15 @@ void ConfigParser::process_server_directive(ServerConfig& server, const std::str
 	std::stringstream ss(line_content);
 	if (key == "listen") {
 		std::string val;
+		std::string extra;
 		ss >> val;
 		val = strip_semicolon(val);
-		if (val.empty()) {
-			throw std::runtime_error("Missing port number after 'listen' directive.");
+
+		if (val.empty() || !is_valid_client_max_body_size(val)) {
+			throw std::runtime_error("Invalid listen directive: missing or invalid port number.");
 		}
-		for (size_t i = 0; i < val.length(); i++) {
-			if (!std::isdigit(val[i])) {
-				throw std::runtime_error("Invalid port number (must be numeric): " + val);
-			}
-		}
+		if (ss >> extra && extra != ";")
+			throw std::runtime_error("Invalid listen directive: too many arguments.");
 		int port = std::atoi(val.c_str());
 		if (port > 0 && port <= 65535) {
 			server.listen_port = port;
@@ -96,6 +95,10 @@ void ConfigParser::process_server_directive(ServerConfig& server, const std::str
 	} else if (key == "host") {
 		std::string val;
 		ss >> val;
+		std::string extra;
+		if (ss >> extra && extra != ";") {
+			throw std::runtime_error("host directive should only have one argument.");
+		}
 		val = strip_semicolon(val);
 		if (!is_valid_host(val)) {
 			throw std::runtime_error("Invalid host value: " + val);
@@ -104,6 +107,10 @@ void ConfigParser::process_server_directive(ServerConfig& server, const std::str
 	} else if (key == "client_max_body_size") {
     	std::string val;
     	ss >> val;
+		std::string extra;
+		if (ss >> extra && extra != ";") {
+			throw std::runtime_error("client_max_body_size directive should only have one argument.");
+		}
     	val = strip_semicolon(val);
     	if (val.empty()) {
     	    throw std::runtime_error("client_max_body_size directive cannot be empty.");
@@ -128,10 +135,16 @@ void ConfigParser::process_server_directive(ServerConfig& server, const std::str
 	            throw std::runtime_error("Invalid client_max_body_size value: " + val);
 	        }
 	    }
-	    long long size_value = std::atoll(val.c_str());
-	    if (size_value < 0 || size_value > 4294967295LL) { 
-	        throw std::runtime_error("client_max_body_size is out of range (Too large).");
+		errno = 0;
+		char* end_ptr;
+		unsigned long size_value = std::strtoul(val.c_str(), &end_ptr, 10);
+		if (*end_ptr != '\0') {
+	        throw std::runtime_error("Invalid client_max_body_size value: " + val);
 	    }
+		unsigned long max_size = 4294967295UL / multiplier;
+		if (errno == ERANGE || size_value > max_size) {
+ 		   throw std::runtime_error("client_max_body_size is out of range (Too large).");
+		}
 	    server.client_max_body_size = static_cast<size_t>(size_value * multiplier);
 	}else if (key == "server_name") {
 		std::string val;
@@ -182,6 +195,10 @@ void ConfigParser::process_location_directive(LocationConfig& location, const st
 		ss >> val;
 		val = strip_semicolon(val);
 		location.root = val;
+
+		if (location.root.empty()) {
+			throw std::runtime_error("root directive cannot be empty.");
+		}
 	} else if (key == "index") {
 		std::string val;
 		location.index.clear(); 
@@ -195,7 +212,12 @@ void ConfigParser::process_location_directive(LocationConfig& location, const st
 		}
 	} else if (key == "autoindex") {
     	std::string val;
+		std::string extra;
     	ss >> val;
+		
+		if (ss >> extra && extra != ";") {
+			throw std::runtime_error("autoindex directive should only have one argument: 'on' or 'off'.");
+		}
     	val = strip_semicolon(val);
     	if (val == "on") location.autoindex = true;
     	else if (val == "off") location.autoindex = false;
@@ -213,6 +235,9 @@ void ConfigParser::process_location_directive(LocationConfig& location, const st
             }
             location.allowed_methods.push_back(method);
         }
+		if (location.allowed_methods.empty()) {
+			throw std::runtime_error("allow_methods directive cannot be empty.");
+		}
     } else if (key == "return") {
         std::string code_str, url;
         ss >> code_str >> url;

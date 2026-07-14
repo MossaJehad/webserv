@@ -1,5 +1,5 @@
 CC =  c++ 
-CFLAGS = -Wall -Wextra -Werror -std=c++98
+CFLAGS = -Wall -Wextra -Werror -pedantic -std=c++98
 ARFLAGS = rcs
 NAME = webserve
 all: $(NAME)
