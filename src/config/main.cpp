@@ -62,19 +62,67 @@ void print_parsed_data(const std::vector<ServerConfig>& servers) {
     }
 }
 
-int main() {
+int main(int argc, char* argv[]) {
     ConfigParser parser;
 
+    if (argc > 2) {
+        std::cerr << "Usage: " << argv[0] << " <config_file_path>\n";
+        return 1;
+    }
+    std::string filepath;
+    if (argc == 2){
+        filepath = argv[1];
+    }
+    else {
+        filepath = "test.conf";
+    }
+
     try {
-        std::vector<ServerConfig> servers = parser.parse("test.conf");
+         std::vector<ServerConfig> servers = parser.parse(filepath);
+
+         std::vector<std::string> virtual_lines = parser.get_preprocessed_lines(filepath);
+        parser.save_preprocessed_file("preprocessed_output.conf", virtual_lines);
 
         std::cout << "--- Parsing Verification Successful! ---\n";
         print_parsed_data(servers);
     } 
     catch (const std::exception& e) {
-        std::cerr << "Configuration Error: " << e.what() << std::endl;
+        std::cerr << e.what() << std::endl; // طباعة الاستثناء مباشرة لمنع تكرار كلمة "Configuration Error"
         return 1;
     }
 
     return 0;
 }
+
+/* 
+
+
+int main(int argc, char** argv) {
+    if (argc > 2) {
+        std::cerr << "Usage: ./webserv [config_file_path]" << std::endl;
+        return 1;
+    }
+
+    std::string config_file = (argc == 2) ? argv[1] : "test.conf";
+    ConfigParser parser;
+
+    try {
+        std::cout << "--- Starting Preprocessing Test ---" << std::endl;
+        
+        // 1. استخراج الأسطر المنظمة فقط من الملف الأصلي
+        std::vector<std::string> virtual_lines = parser.get_preprocessed_lines(config_file);
+
+        // 2. حفظ الأسطر الجديدة في ملف جديد على جهازك باسم "preprocessed_output.conf"
+        parser.save_preprocessed_file("preprocessed_output.conf", virtual_lines);
+
+        std::cout << "--- Preprocessing Test Finished Successfully! ---" << std::endl;
+    } 
+    catch (const std::exception& e) {
+        std::cerr << "Preprocessing Error: " << e.what() << std::endl;
+        return 1;
+    }
+
+    return 0;
+}
+
+*/
