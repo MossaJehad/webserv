@@ -36,12 +36,12 @@ void print_parsed_data(const std::vector<ServerConfig>& servers) {
             const LocationConfig& loc = server.locations[k];
             std::cout << "    * Path: '" << loc.path << "'\n";
             std::cout << "      Root           : " << loc.root << "\n";
-// طباعة ملفات الـ Index المتعددة بشكل صحيح
             std::cout << "      Index Files    : ";
             for (size_t m = 0; m < loc.index.size(); ++m) {
                 std::cout << loc.index[m] << " ";
             }
-            std::cout << "\n";            std::cout << "      Autoindex      : " << (loc.autoindex ? "on" : "off") << "\n";
+            std::cout << "\n";            
+            std::cout << "      Autoindex      : " << (loc.autoindex ? "on" : "off") << "\n";
             
             std::cout << "      Allowed Methods: ";
             for (size_t m = 0; m < loc.allowed_methods.size(); ++m) {
@@ -69,60 +69,27 @@ int main(int argc, char* argv[]) {
         std::cerr << "Usage: " << argv[0] << " <config_file_path>\n";
         return 1;
     }
+    
     std::string filepath;
-    if (argc == 2){
+    if (argc == 2) {
         filepath = argv[1];
-    }
-    else {
+    } else {
         filepath = "test.conf";
     }
 
     try {
-         std::vector<ServerConfig> servers = parser.parse(filepath);
+        std::vector<ServerConfig> servers = parser.parse(filepath);
 
-         std::vector<std::string> virtual_lines = parser.get_preprocessed_lines(filepath);
+        std::vector<std::string> virtual_lines = parser.get_preprocessed_lines(filepath);
         parser.save_preprocessed_file("preprocessed_output.conf", virtual_lines);
 
         std::cout << "--- Parsing Verification Successful! ---\n";
         print_parsed_data(servers);
     } 
     catch (const std::exception& e) {
-        std::cerr << e.what() << std::endl; // طباعة الاستثناء مباشرة لمنع تكرار كلمة "Configuration Error"
+        std::cerr << e.what() << std::endl; 
         return 1;
     }
 
     return 0;
 }
-
-/* 
-
-
-int main(int argc, char** argv) {
-    if (argc > 2) {
-        std::cerr << "Usage: ./webserv [config_file_path]" << std::endl;
-        return 1;
-    }
-
-    std::string config_file = (argc == 2) ? argv[1] : "test.conf";
-    ConfigParser parser;
-
-    try {
-        std::cout << "--- Starting Preprocessing Test ---" << std::endl;
-        
-        // 1. استخراج الأسطر المنظمة فقط من الملف الأصلي
-        std::vector<std::string> virtual_lines = parser.get_preprocessed_lines(config_file);
-
-        // 2. حفظ الأسطر الجديدة في ملف جديد على جهازك باسم "preprocessed_output.conf"
-        parser.save_preprocessed_file("preprocessed_output.conf", virtual_lines);
-
-        std::cout << "--- Preprocessing Test Finished Successfully! ---" << std::endl;
-    } 
-    catch (const std::exception& e) {
-        std::cerr << "Preprocessing Error: " << e.what() << std::endl;
-        return 1;
-    }
-
-    return 0;
-}
-
-*/
