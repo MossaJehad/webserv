@@ -3,7 +3,7 @@ CFLAGS = -Wall -Wextra -Werror -pedantic -std=c++98
 ARFLAGS = rcs
 NAME = webserve
 all: $(NAME)
-SRCS = main.cpp Config.cpp configParser.cpp
+SRCS = main.cpp Config.cpp configParser.cpp Socket.cpp ClientConnection.cpp WebServer.cpp
 
 OBJS =  $(SRCS:.cpp=.o)
 

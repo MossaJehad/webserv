@@ -5,6 +5,7 @@
 #include <exception>
 #include <cstdlib>
 #include "configParser.hpp"
+#include "WebServer.hpp"
 
 void print_parsed_data(const std::vector<ServerConfig>& servers) {
     std::cout << "\n========= PARSED CONFIGURATION RESULTS =========\n\n";
@@ -85,6 +86,9 @@ int main(int argc, char* argv[]) {
 
         std::cout << "--- Parsing Verification Successful! ---\n";
         print_parsed_data(servers);
+
+        WebServer webserv(servers);
+        webserv.run();
     } 
     catch (const std::exception& e) {
         std::cerr << e.what() << std::endl; 
