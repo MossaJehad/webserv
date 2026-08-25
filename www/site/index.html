@@ -1,1 +1,180 @@
-<!-- www/site/index.html | static test root | Owner: Developer A | SKELETON -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webserv - 42 HTTP Server</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌐 webserv</h1>
+            <p class="subtitle">A compliant C++98 non-blocking HTTP/1.1 server</p>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-btn active" onclick="showTab('home')">Home & Status</button>
+            <button class="tab-btn" onclick="showTab('upload')">File Upload (POST)</button>
+            <button class="tab-btn" onclick="showTab('files')">Files & DELETE</button>
+            <button class="tab-btn" onclick="showTab('cgi')">CGI Scripts</button>
+            <button class="tab-btn" onclick="showTab('cookies')">Cookies & Sessions</button>
+            <button class="tab-btn" onclick="showTab('routes')">Routes & Errors</button>
+        </nav>
+
+        <!-- Home Tab -->
+        <div id="tab-home" class="tab-content active">
+            <h2>Welcome to Webserv</h2>
+            <p>This web server was created as part of the 42 curriculum using C++98, non-blocking I/O multiplexing with a single <code>poll()</code> loop, standard CGI execution, chunked transfer encoding, and virtual hosts.</p>
+            
+            <div class="card-grid">
+                <div class="card">
+                    <h3>⚡ Core Features</h3>
+                    <ul>
+                        <li>HTTP/1.1 & HTTP/1.0 compliant</li>
+                        <li>Single <code>poll()</code> event-driven reactor</li>
+                        <li>GET, POST, DELETE methods</li>
+                        <li>Static file serving & autoindex directory listing</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>🚀 Advanced Features</h3>
+                    <ul>
+                        <li>Asynchronous CGI (Python, Bash, PHP)</li>
+                        <li>Chunked transfer request decoding</li>
+                        <li>Custom error pages & client body limits</li>
+                        <li>Cookies & session tracking (Bonus)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- File Upload Tab -->
+        <div id="tab-upload" class="tab-content">
+            <h2>File Upload Test (POST)</h2>
+            <p>Upload a file to the server storage directory using multipart/form-data:</p>
+            <form action="/uploads" method="POST" enctype="multipart/form-data" class="form-box">
+                <input type="file" name="file" required>
+                <button type="submit" class="btn">Upload File</button>
+            </form>
+
+            <h3>Or Upload via Raw Fetch:</h3>
+            <div class="form-box">
+                <input type="text" id="rawFileName" placeholder="filename.txt" value="sample.txt">
+                <textarea id="rawFileContent" placeholder="Enter text content...">Hello from Webserv upload test!</textarea>
+                <button onclick="uploadRaw()" class="btn">Upload Raw Text</button>
+            </div>
+            <div id="uploadResult" class="result-box"></div>
+        </div>
+
+        <!-- Files & Delete Tab -->
+        <div id="tab-files" class="tab-content">
+            <h2>Browse & Delete Files (DELETE)</h2>
+            <p>View uploaded files or browse directory listings:</p>
+            <div class="btn-group">
+                <a href="/uploads/" target="_blank" class="btn">Browse /uploads/ (Autoindex)</a>
+                <a href="/restricted" target="_blank" class="btn">Restricted Route (GET only)</a>
+            </div>
+
+            <h3>Delete a File</h3>
+            <div class="form-box">
+                <input type="text" id="deleteFilePath" placeholder="e.g. /uploads/sample.txt" value="/uploads/sample.txt">
+                <button onclick="deleteFile()" class="btn btn-danger">DELETE File</button>
+            </div>
+            <div id="deleteResult" class="result-box"></div>
+        </div>
+
+        <!-- CGI Tab -->
+        <div id="tab-cgi" class="tab-content">
+            <h2>CGI Execution (Python, Bash)</h2>
+            <div class="card-grid">
+                <div class="card">
+                    <h3>🐍 Python CGI</h3>
+                    <p>Test dynamic Python scripts with query parameters:</p>
+                    <a href="/cgi-bin/hello.py?name=42Student&score=100" target="_blank" class="btn">Run hello.py</a>
+                    <a href="/cgi-bin/env.py" target="_blank" class="btn">View CGI Environment</a>
+                </div>
+                <div class="card">
+                    <h3>🐚 Bash CGI</h3>
+                    <p>Test Shell script CGI execution:</p>
+                    <a href="/cgi-bin/hello.sh" target="_blank" class="btn">Run hello.sh</a>
+                </div>
+            </div>
+
+            <h3>POST Data to CGI:</h3>
+            <form action="/cgi-bin/post.py" method="POST" class="form-box">
+                <input type="text" name="user" placeholder="Username" value="Student42">
+                <input type="text" name="message" placeholder="Message" value="Testing POST to CGI">
+                <button type="submit" class="btn">Submit to CGI</button>
+            </form>
+        </div>
+
+        <!-- Cookies & Session Tab -->
+        <div id="tab-cookies" class="tab-content">
+            <h2>Cookies & Session Management (Bonus)</h2>
+            <p>Demonstration of stateful sessions and cookie handling via CGI:</p>
+            <div class="card">
+                <a href="/cgi-bin/session.py" target="_blank" class="btn">Open Session Tracker</a>
+                <p style="margin-top:10px; color:#666;">Each visit increments your visit count and persists your session ID in cookies!</p>
+            </div>
+        </div>
+
+        <!-- Routes & Errors Tab -->
+        <div id="tab-routes" class="tab-content">
+            <h2>Routes & HTTP Status Codes</h2>
+            <p>Click below to test redirection and error handling:</p>
+            <div class="btn-group">
+                <a href="/redirect" class="btn">HTTP 301 Redirect (to /)</a>
+                <a href="/google" class="btn">HTTP 302 Redirect (to google.com)</a>
+                <a href="/non_existent_page_12345" class="btn btn-warn">HTTP 404 Custom Error</a>
+            </div>
+        </div>
+
+        <footer>
+            <p>webserv &copy; 42 Curriculum</p>
+        </footer>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tabName).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        function uploadRaw() {
+            const filename = document.getElementById('rawFileName').value;
+            const content = document.getElementById('rawFileContent').value;
+            const resDiv = document.getElementById('uploadResult');
+
+            fetch('/uploads/' + encodeURIComponent(filename), {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: content
+            })
+            .then(res => res.text().then(text => ({ status: res.status, text })))
+            .then(data => {
+                resDiv.innerHTML = `<p class="success">Status: ${data.status}</p><pre>${data.text}</pre>`;
+            })
+            .catch(err => {
+                resDiv.innerHTML = `<p class="error">Error: ${err}</p>`;
+            });
+        }
+
+        function deleteFile() {
+            const path = document.getElementById('deleteFilePath').value;
+            const resDiv = document.getElementById('deleteResult');
+
+            fetch(path, { method: 'DELETE' })
+            .then(res => res.text().then(text => ({ status: res.status, text })))
+            .then(data => {
+                resDiv.innerHTML = `<p class="${data.status >= 200 && data.status < 300 ? 'success' : 'error'}">Status: ${data.status}</p><pre>${data.text}</pre>`;
+            })
+            .catch(err => {
+                resDiv.innerHTML = `<p class="error">Error: ${err}</p>`;
+            });
+        }
+    </script>
+</body>
+</html>

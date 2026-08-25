@@ -1,8 +1,16 @@
-// ====================================================================
-// File:    src/net/IEventHandler.hpp | Module: net
-// Purpose: interface for any pollable fd. onReadable(), onWritable(),
-//          fd(), wantsWrite(), isDead(). reactor talks only to this.
-// Owner:   Developer B   Deps: none
-// Note:    CORE CONTRACT. implemented by Listener, Connection,
-//          CgiProcess. abstract, no state. < 250 lines.
-// ====================================================================
+#ifndef IEVENTHANDLER_HPP
+#define IEVENTHANDLER_HPP
+
+class IEventHandler {
+public:
+    virtual ~IEventHandler() {}
+    virtual int getFd() const = 0;
+    virtual void handleRead() = 0;
+    virtual void handleWrite() = 0;
+    virtual bool wantsRead() const = 0;
+    virtual bool wantsWrite() const = 0;
+    virtual bool isDead() const = 0;
+    virtual void handleTimeout() {}
+};
+
+#endif

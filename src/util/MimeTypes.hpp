@@ -1,6 +1,18 @@
-// ====================================================================
-// File:    src/util/MimeTypes.hpp | Module: util
-// Purpose: map file extension -> Content-Type. default octet-stream.
-// Owner:   Developer A   Deps: <string>, <map>
-// Note:    table lookup only. < 250 lines.
-// ====================================================================
+#ifndef MIMETYPES_HPP
+#define MIMETYPES_HPP
+
+#include <string>
+#include <map>
+
+class MimeTypes {
+private:
+    static std::map<std::string, std::string> _types;
+    static bool _initialized;
+
+    static void init();
+
+public:
+    static std::string getType(const std::string& path);
+};
+
+#endif

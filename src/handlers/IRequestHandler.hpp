@@ -1,7 +1,13 @@
-// ====================================================================
-// File:    src/handlers/IRequestHandler.hpp | Module: handlers
-// Purpose: interface. handle(RequestContext) returns HttpResponse.
-//          all method/route handlers implement this.
-// Owner:   Developer C   Deps: routing/RequestContext, http/HttpResponse
-// Note:    CONTRACT. abstract, no state. < 250 lines.
-// ====================================================================
+#ifndef IREQUESTHANDLER_HPP
+#define IREQUESTHANDLER_HPP
+
+#include "RequestContext.hpp"
+#include "HttpResponse.hpp"
+
+class IRequestHandler {
+public:
+    virtual ~IRequestHandler() {}
+    virtual HttpResponse handle(const RequestContext& ctx) = 0;
+};
+
+#endif

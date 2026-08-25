@@ -1,8 +1,24 @@
-// ====================================================================
-// File:    src/net/Reactor.hpp | Module: net
-// Purpose: THE poll() loop. one poll for all fds. dispatch ready
-//          fds to handlers (read AND write same cycle). sweep dead.
-// Owner:   Developer B   Deps: PollRegistry, IEventHandler, core/Signal,
-//          connection/ConnectionManager, util/Logger
-// Note:    single multiplex point. no errno-after-io. < 250 lines.
-// ====================================================================
+#ifndef REACTOR_HPP
+#define REACTOR_HPP
+
+#include "PollRegistry.hpp"
+#include "ConnectionManager.hpp"
+#include <vector>
+#include <poll.h>
+
+class Reactor {
+private:
+    PollRegistry& _registry;
+    ConnectionManager& _connManager;
+    bool _running;
+
+public:
+    Reactor(PollRegistry& registry, ConnectionManager& connManager);
+    ~Reactor();
+
+    void run();
+    void stop();
+    bool isRunning() const;
+};
+
+#endif
