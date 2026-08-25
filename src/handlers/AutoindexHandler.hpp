@@ -1,6 +1,16 @@
-// ====================================================================
-// File:    src/handlers/AutoindexHandler.hpp | Module: handlers
-// Purpose: directory listing HTML when autoindex on and no index file.
-// Owner:   Developer C   Deps: IRequestHandler, util/FileSystem
-// Note:    one job. < 250 lines.
-// ====================================================================
+#ifndef AUTOINDEXHANDLER_HPP
+#define AUTOINDEXHANDLER_HPP
+
+#include "IRequestHandler.hpp"
+#include <string>
+
+class AutoindexHandler : public IRequestHandler {
+public:
+    AutoindexHandler();
+    virtual ~AutoindexHandler();
+
+    virtual HttpResponse handle(const RequestContext& ctx);
+    static HttpResponse generateListing(const std::string& dirPath, const std::string& uriPath);
+};
+
+#endif

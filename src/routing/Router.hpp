@@ -1,9 +1,28 @@
-// ====================================================================
-// File:    src/routing/Router.hpp | Module: routing
-// Purpose: match request to server (host header + listen port) then
-//          location (longest path prefix). check method allowed.
-//          resolve fs path (root + uri). build RequestContext.
-// Owner:   Developer C   Deps: RequestContext, http/HttpRequest,
-//          config/ServerConfig, util/FileSystem
-// Note:    selection only, no I/O. < 250 lines.
-// ====================================================================
+#ifndef ROUTER_HPP
+#define ROUTER_HPP
+
+#include "RequestContext.hpp"
+#include "ServerConfig.hpp"
+#include "LocationConfig.hpp"
+#include "HttpRequest.hpp"
+#include <vector>
+#include <string>
+
+class Router {
+public:
+    static const ServerConfig& matchServer(const std::vector<ServerConfig>& servers,
+                                          const std::string& hostHeader,
+                                          int serverPort);
+
+    static const LocationConfig& matchLocation(const ServerConfig& server,
+                                              const std::string& uriPath);
+
+    static std::string resolveFsPath(const LocationConfig& location,
+                                    const std::string& uriPath);
+
+    static RequestContext route(const std::vector<ServerConfig>& servers,
+                                const HttpRequest& req,
+                                int serverPort);
+};
+
+#endif

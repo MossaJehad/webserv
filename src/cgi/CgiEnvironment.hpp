@@ -1,8 +1,23 @@
-// ====================================================================
-// File:    src/cgi/CgiEnvironment.hpp | Module: cgi
-// Purpose: build CGI/1.1 meta-variable envp from request + context.
-//          REQUEST_METHOD, QUERY_STRING, CONTENT_LENGTH/TYPE,
-//          SCRIPT_NAME, PATH_INFO, SERVER_*, etc.
-// Owner:   Developer C   Deps: routing/RequestContext, http/HttpRequest
-// Note:    pure build, no exec. < 250 lines.
-// ====================================================================
+#ifndef CGIENVIRONMENT_HPP
+#define CGIENVIRONMENT_HPP
+
+#include "RequestContext.hpp"
+#include <string>
+#include <vector>
+#include <map>
+
+class CgiEnvironment {
+private:
+    std::map<std::string, std::string> _envMap;
+
+public:
+    CgiEnvironment();
+    ~CgiEnvironment();
+
+    void build(const RequestContext& ctx);
+    char** createEnvp() const;
+    static void freeEnvp(char** envp);
+    const std::map<std::string, std::string>& getMap() const;
+};
+
+#endif

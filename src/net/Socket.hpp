@@ -1,7 +1,32 @@
-// ====================================================================
-// File:    src/net/Socket.hpp | Module: net
-// Purpose: RAII fd wrapper. close on destroy, set O_NONBLOCK,
-//          setsockopt SO_REUSEADDR.
-// Owner:   Developer B   Deps: <sys/socket.h>, <fcntl.h>
-// Note:    no copy. owns one fd. < 250 lines.
-// ====================================================================
+#ifndef SOCKET_HPP
+#define SOCKET_HPP
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+class Socket {
+private:
+    int _fd;
+
+    // Non-copyable
+    Socket(const Socket&);
+    Socket& operator=(const Socket&);
+
+public:
+    Socket();
+    explicit Socket(int fd);
+    ~Socket();
+
+    int getFd() const;
+    void setFd(int fd);
+    int release();
+    void close();
+
+    static bool setNonBlocking(int fd);
+    static bool setReuseAddr(int fd);
+    static bool setCloexec(int fd);
+};
+
+#endif
