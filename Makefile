@@ -16,7 +16,6 @@ INCLUDES    = -Isrc/core \
 SRCS        = src/main.cpp \
               src/core/Signal.cpp \
               src/core/Webserv.cpp \
-              src/config/ConfigTypes.hpp \
               src/config/LocationConfig.cpp \
               src/config/ServerConfig.cpp \
               src/config/ConfigTokenizer.cpp \
@@ -54,24 +53,48 @@ SRCS        = src/main.cpp \
               src/util/MimeTypes.cpp \
               src/util/Time.cpp
 
-# Filter out non-.cpp files from compilation
 CPP_SRCS    = $(filter %.cpp, $(SRCS))
 OBJS        = $(CPP_SRCS:.cpp=.o)
+
+# ANSI Color & Style Palette
+CLR_RESET   = \033[0m
+CLR_BOLD    = \033[1m
+CLR_DIM     = \033[2m
+CLR_CYAN    = \033[36m
+CLR_GREEN   = \033[32m
+CLR_YELLOW  = \033[33m
+CLR_BLUE    = \033[34m
+CLR_MAGENTA = \033[35m
+CLR_RED     = \033[31m
 
 all: $(NAME)
 
 $(NAME): $(OBJS)
-	$(CXX) $(CXXFLAGS) $(OBJS) -o $(NAME)
+	@printf "\n$(CLR_BOLD)$(CLR_MAGENTA)⚡ Linking executable: $(NAME)...$(CLR_RESET)\n"
+	@$(CXX) $(CXXFLAGS) $(OBJS) -o $(NAME)
+	@printf "$(CLR_BOLD)$(CLR_GREEN)╔════════════════════════════════════════════════════════════════════╗$(CLR_RESET)\n"
+	@printf "$(CLR_BOLD)$(CLR_GREEN)║  🚀  $(NAME) built successfully! Launch with: ./$(NAME)           ║$(CLR_RESET)\n"
+	@printf "$(CLR_BOLD)$(CLR_GREEN)╚════════════════════════════════════════════════════════════════════╝$(CLR_RESET)\n"
 
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+	@printf "$(CLR_BOLD)$(CLR_CYAN)  ⚙️  [Compiling]$(CLR_RESET) $(CLR_DIM)$<$(CLR_RESET)\n"
+	@$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 clean:
-	rm -f $(OBJS)
+	@printf "$(CLR_BOLD)$(CLR_YELLOW)🧹  Cleaning object files (.o)...$(CLR_RESET)\n"
+	@rm -f $(OBJS)
+	@printf "$(CLR_BOLD)$(CLR_GREEN)✨  Object files successfully removed!$(CLR_RESET)\n"
 
-fclean: clean
-	rm -f $(NAME)
+fclean:
+	@printf "$(CLR_BOLD)$(CLR_RED)🗑️   Purging all build artifacts and $(NAME) executable...$(CLR_RESET)\n"
+	@rm -f $(OBJS)
+	@rm -f $(NAME)
+	@printf "$(CLR_BOLD)$(CLR_GREEN)✨  Full clean complete!$(CLR_RESET)\n"
 
-re: fclean all
+re:
+	@printf "$(CLR_BOLD)$(CLR_MAGENTA)🔄  Rebuilding $(NAME) from scratch...$(CLR_RESET)\n\n"
+	@$(MAKE) --no-print-directory fclean
+	@printf "\n"
+	@$(MAKE) --no-print-directory all
 
 .PHONY: all clean fclean re
