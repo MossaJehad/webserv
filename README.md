@@ -39,7 +39,8 @@ An HTTP/1.1 web server implemented in C++ 98 using non-blocking I/O multiplexing
 - **Bonus Features**:
   - Session and cookie management with `Set-Cookie` and `Cookie` headers.
   - Multi-port and virtual host configuration matching `server_name` and `Host` headers.
-  - Support for multiple CGI scripting languages.
+  - Multiple CGI languages dispatched purely by file extension: Python (`.py`),
+    Bash (`.sh`), Perl (`.pl`), and PHP (`.php`, when `php-cgi` is installed).
 
 ---
 
@@ -92,11 +93,22 @@ python3 tests/integration/test_webserv.py
 #    client disconnects, process/fd hygiene and stress tests
 python3 tests/integration/test_regression.py
 
-#    Add --slow to also exercise the request-timeout paths (~25s extra)
-python3 tests/integration/test_regression.py --slow
+#    --slow also exercises the request-timeout path (~25s extra)
+#    --oom  also starts a second server under a hard memory cap to prove the
+#           process survives std::bad_alloc
+#    --all  runs everything
+python3 tests/integration/test_regression.py --all
 
 # 4. Terminate server
 kill $SERVER_PID
+```
+
+Browser check (the subject requires compatibility with a standard browser):
+
+```bash
+./webserv config/default.conf &
+xdg-open http://localhost:8080/     # or open the URL manually
+w3m -dump http://localhost:8080/    # text-mode browser, no GUI needed
 ```
 
 To check for memory and descriptor leaks:

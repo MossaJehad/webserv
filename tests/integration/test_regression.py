@@ -7,9 +7,12 @@ accurate status codes on edge cases, and absence of leaked child processes.
 
 Usage:
     ./webserv config/default.conf &
-    python3 tests/integration/test_regression.py [--slow]
+    python3 tests/integration/test_regression.py [--slow] [--oom] [--all]
 
---slow additionally runs the timeout tests, which take ~25s each.
+--slow additionally runs the request-timeout test (~25s).
+--oom  additionally runs the out-of-memory resilience test, which starts its own
+       server on port 8099 under a hard address-space limit.
+--all  runs everything.
 """
 
 import os
@@ -692,6 +695,99 @@ def test_strict_request_syntax():
               f"expected {expected}, got {status_of(raw)}")
 
 
+def test_out_of_memory_resilience():
+    """The subject requires the server not to crash "even if it runs out of
+    memory". This spawns a second server on another port under a hard
+    address-space cap and hammers it with bodies it cannot possibly allocate.
+
+    Run explicitly with --oom because it needs its own server instance.
+    """
+    port = 8099
+    conf = "/tmp/webserv_oom.conf"
+    with open(conf, "w") as f:
+        f.write("server {\n"
+                f"    listen 127.0.0.1:{port};\n"
+                "    client_max_body_size 100M;\n"
+                "    root www/site;\n"
+                "    location / { root www/site; methods GET; }\n"
+                "    location /uploads { root www/uploads; methods GET POST;"
+                " upload_dir www/uploads; }\n"
+                "}\n")
+
+    # ulimit must be applied in the child before exec, hence the shell wrapper.
+    proc = subprocess.Popen(["/bin/sh", "-c",
+                             f"ulimit -v 65536; exec ./webserv {conf}"],
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    try:
+        time.sleep(1.5)
+        if proc.poll() is not None:
+            check("Capped server started for the OOM test", False,
+                  "it exited immediately")
+            return
+
+        def flood(i):
+            try:
+                s = socket.create_connection((HOST, port), timeout=25)
+                body = b"Z" * (9 * 1024 * 1024)
+                s.sendall((f"POST /uploads/oom_{i}.bin HTTP/1.1\r\nHost: {HOST}\r\n"
+                           f"Content-Length: {len(body)}\r\n"
+                           f"Connection: close\r\n\r\n").encode())
+                s.sendall(body)
+                while s.recv(65536):
+                    pass
+                s.close()
+            except Exception:
+                pass  # a dropped connection is the expected, acceptable outcome
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as ex:
+            list(ex.map(flood, range(10)))
+        time.sleep(1)
+
+        check("Server survives allocation failure without terminating",
+              proc.poll() is None, f"process exited with {proc.poll()}")
+
+        # And it must still serve ordinary traffic afterwards.
+        try:
+            s = socket.create_connection((HOST, port), timeout=10)
+            s.sendall(f"GET / HTTP/1.1\r\nHost: {HOST}\r\nConnection: close\r\n\r\n".encode())
+            data = b""
+            while True:
+                chunk = s.recv(65536)
+                if not chunk:
+                    break
+                data += chunk
+            s.close()
+            check("Server still answers normal requests after an OOM burst",
+                  status_of(data) == 200, f"got {status_of(data)}")
+        except Exception as e:
+            check("Server still answers normal requests after an OOM burst",
+                  False, f"{type(e).__name__}: {e}")
+    finally:
+        proc.terminate()
+        try:
+            proc.wait(timeout=5)
+        except Exception:
+            proc.kill()
+        for leftover in os.listdir("www/uploads"):
+            if leftover.startswith("oom_"):
+                os.remove(os.path.join("www/uploads", leftover))
+        if os.path.exists(conf):
+            os.remove(conf)
+
+
+def test_multiple_cgi_types():
+    """Bonus: CGI dispatch is driven by the configured extension, so several
+    interpreters must work side by side."""
+    for script, language in (("hello.py", "Python"), ("hello.sh", "Bash"),
+                             ("hello.pl", "Perl")):
+        if not os.path.exists(os.path.join("www/cgi-bin", script)):
+            continue
+        raw = raw_request(f"GET /cgi-bin/{script} HTTP/1.1\r\nHost: {HOST}\r\n"
+                          f"Connection: close\r\n\r\n", timeout=15)
+        check(f"CGI type works: {language} ({script})", status_of(raw) == 200,
+              f"got {status_of(raw)}")
+
+
 def test_request_timeout_408():
     """An incomplete request must be timed out rather than hang forever."""
     s = socket.create_connection((HOST, PORT), timeout=40)
@@ -720,6 +816,9 @@ def test_request_timeout_408():
 
 def main():
     slow = "--slow" in sys.argv
+    oom = "--oom" in sys.argv or "--all" in sys.argv
+    if "--all" in sys.argv:
+        slow = True
 
     print("=" * 62)
     print("      WEBSERV REGRESSION & ROBUSTNESS SUITE")
@@ -747,6 +846,7 @@ def main():
         test_cgi_stdin_eof,
         test_cgi_does_not_inherit_server_sockets,
         test_concurrent_cgi_never_starves,
+        test_multiple_cgi_types,
         test_keep_alive_and_pipelining,
         test_connection_close_honoured,
         test_many_idle_connections,
@@ -756,6 +856,8 @@ def main():
     ]
     if slow:
         tests.append(test_request_timeout_408)
+    if oom:
+        tests.append(test_out_of_memory_resilience)
 
     for t in tests:
         try:
