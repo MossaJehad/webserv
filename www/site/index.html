@@ -3,17 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>webserv — Systems Console & Evaluation Testbed</title>
+    <title>webserv — Systems Console &amp; Testbed</title>
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
     <div class="app-container">
-        <!-- Header -->
+        <!-- App Header (shadcn style) -->
         <header class="app-header">
             <div class="brand-group">
                 <h1 class="brand-title">
-                    webserv
-                    <span class="badge-server">C++98 Reactor</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--brand-cyan);"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>
+                    <span>webserv</span>
+                    <span class="badge badge-outline" style="font-family:var(--font-mono);">C++98 Reactor</span>
                 </h1>
                 <p class="brand-subtitle">High-Precision Developer Dashboard &amp; RFC 7230/7231 Testbed</p>
             </div>
@@ -23,120 +24,145 @@
             </div>
         </header>
 
-        <!-- Navigation Tabs -->
-        <nav class="tabs-nav" role="tablist" aria-label="Server Dashboard Tabs">
-            <button class="tab-btn" id="tab-btn-home" role="tab" aria-selected="true" aria-controls="tab-home" tabindex="0" onclick="switchTab('home')">
-                <span>Architecture &amp; Tests</span>
+        <!-- shadcn Tabs Component -->
+        <nav class="tabs-list" role="tablist" aria-label="Server Dashboard Navigation">
+            <button class="tabs-trigger" id="tab-btn-home" role="tab" aria-selected="true" aria-controls="tab-home" tabindex="0" onclick="switchTab('home')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <span>Architecture</span>
                 <span class="tab-key-hint">1</span>
             </button>
-            <button class="tab-btn" id="tab-btn-upload" role="tab" aria-selected="false" aria-controls="tab-upload" tabindex="-1" onclick="switchTab('upload')">
+            <button class="tabs-trigger" id="tab-btn-upload" role="tab" aria-selected="false" aria-controls="tab-upload" tabindex="-1" onclick="switchTab('upload')">
                 <span class="badge-method badge-post">POST</span>
                 <span>Uploads</span>
                 <span class="tab-key-hint">2</span>
             </button>
-            <button class="tab-btn" id="tab-btn-files" role="tab" aria-selected="false" aria-controls="tab-files" tabindex="-1" onclick="switchTab('files')">
+            <button class="tabs-trigger" id="tab-btn-files" role="tab" aria-selected="false" aria-controls="tab-files" tabindex="-1" onclick="switchTab('files')">
                 <span class="badge-method badge-delete">DELETE</span>
                 <span>File Explorer</span>
                 <span class="tab-key-hint">3</span>
             </button>
-            <button class="tab-btn" id="tab-btn-cgi" role="tab" aria-selected="false" aria-controls="tab-cgi" tabindex="-1" onclick="switchTab('cgi')">
+            <button class="tabs-trigger" id="tab-btn-cgi" role="tab" aria-selected="false" aria-controls="tab-cgi" tabindex="-1" onclick="switchTab('cgi')">
                 <span class="badge-method badge-get">CGI</span>
                 <span>Dynamic Scripts</span>
                 <span class="tab-key-hint">4</span>
             </button>
-            <button class="tab-btn" id="tab-btn-cookies" role="tab" aria-selected="false" aria-controls="tab-cookies" tabindex="-1" onclick="switchTab('cookies')">
+            <button class="tabs-trigger" id="tab-btn-cookies" role="tab" aria-selected="false" aria-controls="tab-cookies" tabindex="-1" onclick="switchTab('cookies')">
                 <span class="badge-method badge-warn">AUTH</span>
                 <span>Session &amp; Cookies</span>
                 <span class="tab-key-hint">5</span>
             </button>
-            <button class="tab-btn" id="tab-btn-routes" role="tab" aria-selected="false" aria-controls="tab-routes" tabindex="-1" onclick="switchTab('routes')">
+            <button class="tabs-trigger" id="tab-btn-routes" role="tab" aria-selected="false" aria-controls="tab-routes" tabindex="-1" onclick="switchTab('routes')">
                 <span class="badge-method badge-get">HTTP</span>
                 <span>Routes &amp; Errors</span>
                 <span class="tab-key-hint">6</span>
             </button>
         </nav>
 
-        <!-- Main Workarea -->
+        <!-- Main Content Area -->
         <main>
-            <!-- Tab 1: Home & Compliance -->
+            <!-- Tab 1: Home & Architecture -->
             <section id="tab-home" class="tab-panel active" role="tabpanel" aria-labelledby="tab-btn-home">
-                <div class="panel-header">
-                    <h2 class="panel-title">Server Architecture &amp; Evaluation Suite</h2>
-                    <p class="panel-desc">Event-driven HTTP/1.1 server built with non-blocking I/O multiplexing and a single <code>poll()</code> loop.</p>
-                </div>
-
-                <div class="section-block">
-                    <div class="grid-two-col">
-                        <div class="feature-box">
-                            <h3 class="feature-box-title">Core Reactor Engine</h3>
-                            <ul class="feature-list">
-                                <li>Single non-blocking <code>poll()</code> loop multiplexing client sockets and CGI pipes.</li>
-                                <li>Strict RFC 7230/7231 compliance with keep-alive connection management.</li>
-                                <li>Chunked transfer decoding for streamed request bodies.</li>
-                                <li>Multi-port virtual host routing and per-route method restrictions.</li>
-                            </ul>
-                        </div>
-                        <div class="feature-box">
-                            <h3 class="feature-box-title">I/O &amp; Gateway Subsystems</h3>
-                            <ul class="feature-list">
-                                <li>Asynchronous CGI execution (Python 3, Bash, PHP) with timeout handling.</li>
-                                <li>Multipart form-data parsing &amp; raw octet-stream upload handling.</li>
-                                <li>Custom error dispatchers (400, 403, 404, 405, 413, 500, 502, 504).</li>
-                                <li>Stateful cookie session tracking with persistent identification.</li>
-                            </ul>
+                <div class="card" style="margin-bottom:1rem;">
+                    <div class="card-header">
+                        <h2 class="card-title">Server Architecture &amp; Reactor Core</h2>
+                        <p class="card-description">Event-driven HTTP/1.1 web server built with non-blocking I/O multiplexing and a single <code>poll()</code> event loop.</p>
+                    </div>
+                    <div class="card-content">
+                        <div class="grid-2">
+                            <div class="card" style="background:var(--background);">
+                                <div class="card-header">
+                                    <h3 class="card-title" style="color:var(--brand-cyan);">Core Reactor Engine</h3>
+                                </div>
+                                <div class="card-content" style="padding-top:0.5rem;">
+                                    <ul class="feature-list">
+                                        <li>Single non-blocking <code>poll()</code> loop multiplexing client sockets and CGI pipes.</li>
+                                        <li>Strict RFC 7230/7231 HTTP/1.1 compliance with keep-alive connection reuse.</li>
+                                        <li>Chunked transfer decoding for streamed request bodies.</li>
+                                        <li>Multi-port virtual host routing and per-route method restrictions.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="card" style="background:var(--background);">
+                                <div class="card-header">
+                                    <h3 class="card-title" style="color:var(--brand-cyan);">I/O &amp; Gateway Subsystems</h3>
+                                </div>
+                                <div class="card-content" style="padding-top:0.5rem;">
+                                    <ul class="feature-list">
+                                        <li>Asynchronous CGI execution (Python 3, Bash, PHP) with timeout termination.</li>
+                                        <li>Multipart form-data parsing &amp; raw octet-stream upload handlers.</li>
+                                        <li>Custom error dispatchers (400, 403, 404, 405, 413, 500, 502, 504).</li>
+                                        <li>Stateful cookie session tracking with persistent client identification.</li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="section-block">
-                    <h3 class="section-heading">1-Click Evaluation Compliance Suite</h3>
-                    <p class="panel-desc" style="margin-bottom: 12px;">Run a real-time automated verification pass testing the primary 42 defense checkpoints:</p>
-                    <button type="button" class="btn btn-primary" id="btn-run-suite" onclick="runComplianceSuite()">
-                        <span>Run Full Compliance Suite</span>
-                    </button>
-                    <div id="compliance-matrix" class="matrix-grid" style="display:none;"></div>
+                <!-- Compliance Suite Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">1-Click Evaluation Compliance Suite</h2>
+                        <p class="card-description">Run real-time automated verification across 10 primary 42 defense evaluation checkpoints.</p>
+                    </div>
+                    <div class="card-content">
+                        <button type="button" class="btn btn-primary" id="btn-run-suite" onclick="runComplianceSuite()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            <span>Run Full Compliance Suite</span>
+                        </button>
+                        <div id="compliance-matrix" class="matrix-grid" style="display:none;"></div>
+                    </div>
                 </div>
             </section>
 
-            <!-- Tab 2: File Upload (POST) -->
+            <!-- Tab 2: Uploads (POST) -->
             <section id="tab-upload" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-upload">
-                <div class="panel-header">
-                    <h2 class="panel-title">File Upload Test (POST)</h2>
-                    <p class="panel-desc">Upload files via <code>multipart/form-data</code> or raw body streams to <code>/uploads</code>.</p>
-                </div>
-
-                <div class="grid-two-col">
-                    <div class="form-card">
-                        <h3 class="feature-box-title">Multipart Form Upload</h3>
-                        <div class="dropzone-container" id="dropzone" tabindex="0" role="button" aria-label="Upload file dropzone" onclick="document.getElementById('file-input').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('file-input').click();}">
-                            <div class="dropzone-icon">&uarr;</div>
-                            <div class="dropzone-text">Click or drag &amp; drop file to upload</div>
-                            <div class="dropzone-hint">Max body limit: 10MB (client_max_body_size)</div>
-                            <input type="file" id="file-input" style="display:none" onchange="handleFileSelected(event)">
+                <div class="grid-2">
+                    <!-- Multipart Upload Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Multipart Form Upload</h2>
+                            <p class="card-description">Upload binary/text files via <code>multipart/form-data</code> to <code>/uploads</code>.</p>
                         </div>
-                        <div id="file-chip" class="file-chip">
-                            <span id="file-chip-name">filename.txt</span>
-                            <span id="file-chip-size" style="color:var(--text-muted);">0 KB</span>
+                        <div class="card-content">
+                            <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload file dropzone" onclick="document.getElementById('file-input').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('file-input').click();}">
+                                <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                                <div class="dropzone-title">Click or drag &amp; drop file to upload</div>
+                                <div class="dropzone-desc">Max limit: 10MB (<code>client_max_body_size</code>)</div>
+                                <input type="file" id="file-input" style="display:none" onchange="handleFileSelected(event)">
+                            </div>
+                            <div id="file-chip" class="file-chip">
+                                <span id="file-chip-name">filename.txt</span>
+                                <span id="file-chip-size" style="color:var(--muted-foreground);">0 KB</span>
+                            </div>
                         </div>
-                        <div class="button-row">
+                        <div class="card-footer">
                             <button type="button" class="btn btn-primary" id="btn-upload-file" onclick="uploadMultipartFile()" disabled>
-                                <span>Upload File via POST</span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                                <span>Upload File (POST)</span>
                             </button>
                         </div>
                     </div>
 
-                    <div class="form-card">
-                        <h3 class="feature-box-title">Raw Text Stream Upload</h3>
-                        <div>
-                            <label class="input-label" for="raw-filename">Filename</label>
-                            <input type="text" id="raw-filename" class="input-text" value="sample.txt" placeholder="e.g. sample.txt">
+                    <!-- Raw Text Upload Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Raw Text Stream Upload</h2>
+                            <p class="card-description">Direct raw body payload submission to <code>/uploads/{filename}</code>.</p>
                         </div>
-                        <div>
-                            <label class="input-label" for="raw-content">Payload Content</label>
-                            <textarea id="raw-content" class="input-textarea" placeholder="Enter text payload...">Hello from webserv high-precision evaluation test!</textarea>
+                        <div class="card-content">
+                            <div class="form-item">
+                                <label class="label" for="raw-filename">Filename</label>
+                                <input type="text" id="raw-filename" class="input" value="sample.txt" placeholder="e.g. sample.txt">
+                            </div>
+                            <div class="form-item">
+                                <label class="label" for="raw-content">Payload Content</label>
+                                <textarea id="raw-content" class="textarea" placeholder="Enter text payload...">Hello from webserv high-precision evaluation test!</textarea>
+                            </div>
                         </div>
-                        <div class="button-row">
+                        <div class="card-footer">
                             <button type="button" class="btn btn-secondary" onclick="uploadRawText()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                                 <span>Send Raw POST Stream</span>
                             </button>
                         </div>
@@ -146,96 +172,108 @@
 
             <!-- Tab 3: Files & DELETE -->
             <section id="tab-files" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-files">
-                <div class="panel-header">
-                    <h2 class="panel-title">Server Storage &amp; Guarded File Management (DELETE)</h2>
-                    <p class="panel-desc">Inspect files currently stored in <code>www/uploads</code>, preview content, or issue guarded HTTP <code>DELETE</code> operations.</p>
-                </div>
-
-                <div class="section-block">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                        <h3 class="section-heading" style="margin-bottom:0;">Live Uploads Directory (Autoindex)</h3>
-                        <div style="display:flex; gap:8px;">
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="createSampleFile()">
-                                <span>+ Create Sample File</span>
+                <div class="card" style="margin-bottom:1rem;">
+                    <div class="card-header" style="flex-direction:row; justify-content:space-between; align-items:center;">
+                        <div>
+                            <h2 class="card-title">Live Uploads Directory (Autoindex)</h2>
+                            <p class="card-description">Live files in <code>www/uploads</code> parsed dynamically from server autoindex.</p>
+                        </div>
+                        <div style="display:flex; gap:0.5rem;">
+                            <button type="button" class="btn btn-outline btn-sm" onclick="createSampleFile()">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+                                <span>Sample File</span>
                             </button>
                             <button type="button" class="btn btn-secondary btn-sm" onclick="refreshFileList()">
-                                <span>&orarr; Refresh</span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+                                <span>Refresh</span>
                             </button>
                         </div>
                     </div>
-                    <div class="table-wrapper">
-                        <table class="data-table" aria-label="Files list">
-                            <thead>
-                                <tr>
-                                    <th>Filename</th>
-                                    <th>Route</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="file-list-tbody">
-                                <tr>
-                                    <td colspan="3" style="text-align:center; color:var(--text-muted); padding:20px;">
-                                        Loading files from <code>/uploads/</code>...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div class="card-content" style="padding:0;">
+                        <div class="table-container" style="border:none; border-radius:0;">
+                            <table class="table" aria-label="Uploads File Table">
+                                <thead>
+                                    <tr>
+                                        <th>Filename</th>
+                                        <th>Route</th>
+                                        <th style="text-align:right;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="file-list-tbody">
+                                    <tr>
+                                        <td colspan="3" style="text-align:center; color:var(--muted-foreground); padding:1.5rem;">
+                                            Loading files from <code>/uploads/</code>...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
-                <div class="section-block">
-                    <div class="form-card">
-                        <h3 class="feature-box-title" style="color:var(--color-delete);">Targeted Resource Deletion</h3>
-                        <div>
-                            <label class="input-label" for="delete-input-path">Resource Path (DELETE)</label>
-                            <input type="text" id="delete-input-path" class="input-text" value="/uploads/sample.txt" placeholder="/uploads/filename.txt">
+                <!-- Targeted Delete Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title" style="color:var(--destructive);">Targeted Resource Deletion</h2>
+                        <p class="card-description">Issue a direct guarded HTTP <code>DELETE</code> request to any resource path.</p>
+                    </div>
+                    <div class="card-content">
+                        <div class="form-item">
+                            <label class="label" for="delete-input-path">Resource Path (DELETE)</label>
+                            <input type="text" id="delete-input-path" class="input" value="/uploads/sample.txt" placeholder="/uploads/filename.txt">
                         </div>
-                        <div class="button-row">
-                            <button type="button" class="btn btn-danger" onclick="promptDeleteFile(document.getElementById('delete-input-path').value)">
-                                <span>Request File Deletion</span>
-                            </button>
-                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button type="button" class="btn btn-destructive" onclick="promptDeleteFile(document.getElementById('delete-input-path').value)">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                            <span>Request File Deletion</span>
+                        </button>
                     </div>
                 </div>
             </section>
 
             <!-- Tab 4: CGI Scripts -->
             <section id="tab-cgi" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-cgi">
-                <div class="panel-header">
-                    <h2 class="panel-title">Common Gateway Interface (CGI) Execution</h2>
-                    <p class="panel-desc">Non-blocking gateway process execution supporting Python 3 and Bash with query string and body pipelines.</p>
-                </div>
-
-                <div class="grid-two-col">
-                    <div class="form-card">
-                        <h3 class="feature-box-title">Python CGI (GET / Query Parameters)</h3>
-                        <div>
-                            <label class="input-label" for="cgi-param-name">Parameter: Name</label>
-                            <input type="text" id="cgi-param-name" class="input-text" value="42Evaluator">
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Python CGI (GET / Query Parameters)</h2>
+                            <p class="card-description">Child process fork-and-pipe passing <code>QUERY_STRING</code>.</p>
                         </div>
-                        <div>
-                            <label class="input-label" for="cgi-param-score">Parameter: Score</label>
-                            <input type="text" id="cgi-param-score" class="input-text" value="125">
+                        <div class="card-content">
+                            <div class="form-item">
+                                <label class="label" for="cgi-param-name">Name</label>
+                                <input type="text" id="cgi-param-name" class="input" value="42Evaluator">
+                            </div>
+                            <div class="form-item">
+                                <label class="label" for="cgi-param-score">Score</label>
+                                <input type="text" id="cgi-param-score" class="input" value="125">
+                            </div>
                         </div>
-                        <div class="button-row">
-                            <button type="button" class="btn btn-primary" onclick="runPythonCGI()">Run hello.py (GET)</button>
-                            <button type="button" class="btn btn-secondary" onclick="executeRequest('GET', '/cgi-bin/env.py')">View CGI Environment</button>
+                        <div class="card-footer">
+                            <button type="button" class="btn btn-primary" onclick="runPythonCGI()">Run hello.py</button>
+                            <button type="button" class="btn btn-outline" onclick="executeRequest('GET', '/cgi-bin/env.py')">View CGI Environment</button>
                         </div>
                     </div>
 
-                    <div class="form-card">
-                        <h3 class="feature-box-title">Bash CGI &amp; POST to CGI</h3>
-                        <div>
-                            <label class="input-label" for="cgi-post-user">Form User</label>
-                            <input type="text" id="cgi-post-user" class="input-text" value="Cadet42">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Bash CGI &amp; POST to CGI</h2>
+                            <p class="card-description">Asynchronous body streaming to CGI stdin pipe.</p>
                         </div>
-                        <div>
-                            <label class="input-label" for="cgi-post-msg">Message Body</label>
-                            <input type="text" id="cgi-post-msg" class="input-text" value="Evaluating non-blocking CGI POST pipe">
+                        <div class="card-content">
+                            <div class="form-item">
+                                <label class="label" for="cgi-post-user">User</label>
+                                <input type="text" id="cgi-post-user" class="input" value="Cadet42">
+                            </div>
+                            <div class="form-item">
+                                <label class="label" for="cgi-post-msg">Message Body</label>
+                                <input type="text" id="cgi-post-msg" class="input" value="Evaluating non-blocking CGI POST pipe">
+                            </div>
                         </div>
-                        <div class="button-row">
+                        <div class="card-footer">
                             <button type="button" class="btn btn-primary" onclick="runCgiPost()">Submit POST to post.py</button>
-                            <button type="button" class="btn btn-secondary" onclick="executeRequest('GET', '/cgi-bin/hello.sh')">Run hello.sh</button>
+                            <button type="button" class="btn btn-outline" onclick="executeRequest('GET', '/cgi-bin/hello.sh')">Run hello.sh</button>
                         </div>
                     </div>
                 </div>
@@ -243,70 +281,77 @@
 
             <!-- Tab 5: Cookies & Sessions -->
             <section id="tab-cookies" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-cookies">
-                <div class="panel-header">
-                    <h2 class="panel-title">Session State &amp; Cookie Management</h2>
-                    <p class="panel-desc">Demonstration of stateful HTTP sessions via <code>Set-Cookie</code> and <code>Cookie</code> headers handled by CGI.</p>
-                </div>
-
-                <div class="form-card">
-                    <h3 class="feature-box-title">Active Browser Cookies</h3>
-                    <div style="background:var(--bg-input); padding:12px; border-radius:6px; border:1px solid var(--border-subtle); font-family:var(--font-mono); color:var(--brand-cyan);" id="cookie-display">
-                        (No cookies stored yet)
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Session State &amp; Cookie Management</h2>
+                        <p class="card-description">Stateful session tracking via <code>Set-Cookie</code> and <code>Cookie</code> headers handled by CGI.</p>
                     </div>
-                    <div class="button-row">
+                    <div class="card-content">
+                        <div class="form-item">
+                            <label class="label">Active Browser Cookies</label>
+                            <div style="background:var(--background); padding:0.75rem; border-radius:var(--radius-md); border:1px solid var(--border); font-family:var(--font-mono); color:var(--brand-cyan);" id="cookie-display">
+                                (No cookies stored yet)
+                            </div>
+                        </div>
+                        <p style="color:var(--muted-foreground); line-height:1.45;">
+                            Calling <code>session.py</code> returns a <code>Set-Cookie: session_id=...; visits=N</code> header. Refreshing increments your server-side session visit count.
+                        </p>
+                    </div>
+                    <div class="card-footer">
                         <button type="button" class="btn btn-primary" onclick="runSessionTracker()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                             <span>Execute Session Tracker (session.py)</span>
                         </button>
                         <button type="button" class="btn btn-secondary" onclick="clearCookies()">
                             <span>Clear Session Cookies</span>
                         </button>
                     </div>
-                    <p style="color:var(--text-secondary); margin-top:8px;">
-                        Each call to <code>session.py</code> returns a <code>Set-Cookie: session_id=...; visits=N</code> header. Refreshing increments your server-side session visit counter.
-                    </p>
                 </div>
             </section>
 
             <!-- Tab 6: Routes & Status Codes -->
             <section id="tab-routes" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-routes">
-                <div class="panel-header">
-                    <h2 class="panel-title">Routing Engine &amp; HTTP Status Code Verification</h2>
-                    <p class="panel-desc">Test server routing rules, redirection handling (301/302), method restrictions (405), and custom error page templates.</p>
-                </div>
-
-                <div class="section-block">
-                    <h3 class="section-heading">Interactive Status Code Probes</h3>
-                    <div class="button-row">
-                        <button type="button" class="btn btn-secondary" onclick="executeRequest('GET', '/redirect')">
-                            <span class="badge-method badge-warn">301</span>
-                            <span>Redirect &rarr; /</span>
-                        </button>
-                        <button type="button" class="btn btn-secondary" onclick="executeRequest('GET', '/google')">
-                            <span class="badge-method badge-warn">302</span>
-                            <span>Redirect &rarr; google.com</span>
-                        </button>
-                        <button type="button" class="btn btn-secondary" onclick="executeRequest('GET', '/non_existent_page_12345')">
-                            <span class="badge-method badge-delete">404</span>
-                            <span>Custom 404 Error</span>
-                        </button>
-                        <button type="button" class="btn btn-secondary" onclick="executeRequest('DELETE', '/restricted')">
-                            <span class="badge-method badge-delete">405</span>
-                            <span>Method Not Allowed</span>
-                        </button>
-                        <button type="button" class="btn btn-secondary" onclick="executeRequest('GET', '/uploads/')">
-                            <span class="badge-method badge-get">200</span>
-                            <span>Autoindex Listing</span>
-                        </button>
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Routing Engine &amp; HTTP Status Code Verification</h2>
+                        <p class="card-description">Test server routing rules, redirection handling (301/302), method restrictions (405), and custom error page templates.</p>
+                    </div>
+                    <div class="card-content">
+                        <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+                            <button type="button" class="btn btn-outline" onclick="executeRequest('GET', '/redirect')">
+                                <span class="badge-method badge-warn">301</span>
+                                <span>Redirect &rarr; /</span>
+                            </button>
+                            <button type="button" class="btn btn-outline" onclick="executeRequest('GET', '/google')">
+                                <span class="badge-method badge-warn">302</span>
+                                <span>Redirect &rarr; google.com</span>
+                            </button>
+                            <button type="button" class="btn btn-outline" onclick="executeRequest('GET', '/non_existent_page_12345')">
+                                <span class="badge-method badge-delete">404</span>
+                                <span>Custom 404 Error</span>
+                            </button>
+                            <button type="button" class="btn btn-outline" onclick="executeRequest('DELETE', '/restricted')">
+                                <span class="badge-method badge-delete">405</span>
+                                <span>Method Not Allowed</span>
+                            </button>
+                            <button type="button" class="btn btn-outline" onclick="executeRequest('GET', '/uploads/')">
+                                <span class="badge-method badge-get">200</span>
+                                <span>Autoindex Listing</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </section>
         </main>
 
-        <!-- Persistent Telemetry Console Dock -->
+        <!-- Persistent Telemetry Console Dock (shadcn Terminal style) -->
         <section class="telemetry-dock" aria-label="HTTP Telemetry Console">
             <div class="telemetry-header">
                 <div class="telemetry-title-group">
-                    <span class="telemetry-title">HTTP Telemetry Console</span>
+                    <span class="telemetry-title">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--brand-cyan);"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>
+                        <span>HTTP Telemetry Console</span>
+                    </span>
                     <div class="telemetry-meta" id="telemetry-meta" style="display:none;">
                         <span id="telemetry-method-badge" class="badge-method badge-get">GET</span>
                         <span id="telemetry-status-pill" class="pill-status pill-status-success">200 OK</span>
@@ -315,7 +360,7 @@
                 </div>
                 <div class="telemetry-actions">
                     <button type="button" class="btn btn-secondary btn-sm" id="btn-toggle-expand" onclick="toggleTelemetryExpand()">Expand View</button>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="clearTelemetry()">Clear Console</button>
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="clearTelemetry()">Clear</button>
                 </div>
             </div>
 
@@ -325,9 +370,12 @@
                 </div>
                 <div id="telemetry-content" style="display:none;">
                     <div id="telemetry-headers" class="telemetry-headers-grid"></div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                        <span style="color:var(--text-secondary); font-weight:600;">Response Body Payload</span>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyTelemetryBody()" style="padding:2px 8px;">Copy Body</button>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+                        <span style="color:var(--muted-foreground); font-weight:600;">Response Body Payload</span>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyTelemetryBody()">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                            <span>Copy Body</span>
+                        </button>
                     </div>
                     <pre id="telemetry-body" class="telemetry-body-raw"></pre>
                 </div>
@@ -337,37 +385,43 @@
         <!-- Footer -->
         <footer class="app-footer">
             <span>webserv &bull; 42 Curriculum Non-blocking HTTP/1.1 Server</span>
-            <span class="footer-meta">100% Offline &bull; Zero External Dependencies</span>
+            <span class="footer-meta">shadcn-html &bull; 100% Offline &bull; Zero Dependencies</span>
         </footer>
     </div>
 
-    <!-- Confirmation Modal for DELETE -->
-    <div id="delete-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-delete-title">
-        <div class="modal-dialog">
-            <h3 id="modal-delete-title" class="modal-title">
-                <span>Confirm Destructive Deletion</span>
-            </h3>
-            <p class="modal-body" id="modal-delete-body-text">
-                Are you sure you want to permanently delete this resource from the server storage?
-            </p>
-            <div class="modal-actions">
+    <!-- Confirmation Modal for DELETE (shadcn Dialog) -->
+    <div id="delete-modal" class="dialog-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-delete-title">
+        <div class="dialog-content">
+            <div class="dialog-header">
+                <h3 id="modal-delete-title" class="dialog-title destructive">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                    <span>Confirm Destructive Deletion</span>
+                </h3>
+                <p class="dialog-description" id="modal-delete-body-text">
+                    Are you sure you want to permanently delete this resource from the server storage?
+                </p>
+            </div>
+            <div class="dialog-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
-                <button type="button" class="btn btn-danger" id="modal-confirm-delete-btn" onclick="executeConfirmedDelete()">Confirm DELETE</button>
+                <button type="button" class="btn btn-destructive" id="modal-confirm-delete-btn" onclick="executeConfirmedDelete()">Confirm DELETE</button>
             </div>
         </div>
     </div>
 
-    <!-- File Preview Modal -->
-    <div id="preview-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-preview-title">
-        <div class="modal-dialog preview-dialog">
-            <h3 id="modal-preview-title" class="modal-title title-cyan">
-                <span id="preview-file-title">File Preview</span>
-            </h3>
-            <div id="preview-meta-info" style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted); margin-bottom:8px;"></div>
+    <!-- File Preview Modal (shadcn Dialog) -->
+    <div id="preview-modal" class="dialog-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-preview-title">
+        <div class="dialog-content preview-dialog">
+            <div class="dialog-header">
+                <h3 id="modal-preview-title" class="dialog-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--brand-cyan);"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <span id="preview-file-title">File Preview</span>
+                </h3>
+                <div id="preview-meta-info" style="font-family:var(--font-mono); color:var(--muted-foreground);"></div>
+            </div>
             <pre class="preview-code-pane" id="preview-pane-content"></pre>
-            <div class="modal-actions">
+            <div class="dialog-footer">
                 <button type="button" class="btn btn-secondary" onclick="copyPreviewContent()">Copy Content</button>
-                <button type="button" class="btn btn-danger" onclick="deletePreviewedFile()">Delete File</button>
+                <button type="button" class="btn btn-destructive" onclick="deletePreviewedFile()">Delete File</button>
                 <button type="button" class="btn btn-primary" onclick="closePreviewModal()">Close</button>
             </div>
         </div>
@@ -378,7 +432,7 @@
 
     <script>
         /* ==========================================================================
-           webserv Core Client Engine & Telemetry Handler (Polished Edition)
+           webserv Core Client Engine & Telemetry Handler (shadcn-html Edition)
            ========================================================================== */
 
         let selectedUploadFile = null;
@@ -393,7 +447,7 @@
             if (index === -1) return;
 
             document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(btn => {
+            document.querySelectorAll('.tabs-trigger').forEach(btn => {
                 btn.setAttribute('aria-selected', 'false');
                 btn.setAttribute('tabindex', '-1');
             });
@@ -416,10 +470,8 @@
 
         // Global Keyboard Accelerators
         document.addEventListener('keydown', (e) => {
-            // Ignore when typing inside input/textarea
             if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
 
-            // Numbers 1-6 switch tabs
             const num = parseInt(e.key, 10);
             if (num >= 1 && num <= TAB_KEYS.length) {
                 e.preventDefault();
@@ -427,8 +479,7 @@
                 return;
             }
 
-            // Arrow keys cycle tabs
-            const currentTab = document.querySelector('.tab-btn[aria-selected="true"]');
+            const currentTab = document.querySelector('.tabs-trigger[aria-selected="true"]');
             if (currentTab) {
                 const currentId = currentTab.id.replace('tab-btn-', '');
                 const currentIndex = TAB_KEYS.indexOf(currentId);
@@ -458,9 +509,9 @@
             container.appendChild(toast);
             setTimeout(() => {
                 toast.style.opacity = '0';
-                toast.style.transform = 'translateY(10px)';
-                toast.style.transition = 'opacity 0.2s, transform 0.2s';
-                setTimeout(() => toast.remove(), 200);
+                toast.style.transform = 'translateY(6px)';
+                toast.style.transition = 'opacity 0.15s, transform 0.15s';
+                setTimeout(() => toast.remove(), 150);
             }, 3000);
         }
 
@@ -503,7 +554,6 @@
                 const latency = Math.round(performance.now() - startTime);
                 const text = await response.text();
 
-                // Format status
                 const isSuccess = response.status >= 200 && response.status < 300;
                 const isRedirect = response.status >= 300 && response.status < 400;
                 statusPill.textContent = `${response.status} ${response.statusText || ''}`.trim();
@@ -513,7 +563,6 @@
                 );
                 latencySpan.textContent = `${latency} ms`;
 
-                // Render Response Headers
                 headersGrid.innerHTML = '';
                 let headerCount = 0;
                 response.headers.forEach((val, key) => {
@@ -532,7 +581,6 @@
                     headersGrid.innerHTML = '<span class="header-key">Headers:</span><span class="header-val">(None captured / Same-Origin)</span>';
                 }
 
-                // Render Body Payload
                 bodyPre.textContent = text || '(Empty response body)';
 
                 if (url.includes('session.py')) {
@@ -545,7 +593,7 @@
                 statusPill.textContent = 'Connection Error';
                 statusPill.className = 'pill-status pill-status-error';
                 latencySpan.textContent = `${latency} ms`;
-                headersGrid.innerHTML = '<span class="header-key">Exception:</span><span class="header-val" style="color:var(--color-delete);">' + err.message + '</span>';
+                headersGrid.innerHTML = '<span class="header-key">Exception:</span><span class="header-val" style="color:var(--destructive);">' + err.message + '</span>';
                 bodyPre.textContent = `Failed to reach server at ${url}.\nVerify that webserv is listening on 127.0.0.1:8080.\nError Details: ${err}`;
                 return { status: 0, ok: false, error: err };
             }
@@ -571,7 +619,7 @@
             btn.textContent = isExpanded ? 'Collapse View' : 'Expand View';
         }
 
-        // File Drag & Drop Handling
+        // Dropzone & File Selection
         const dropzone = document.getElementById('dropzone');
         ['dragenter', 'dragover'].forEach(eventName => {
             dropzone.addEventListener(eventName, (e) => {
@@ -640,15 +688,15 @@
             }
         }
 
-        // File Explorer & DELETE Management
+        // File Explorer & Autoindex Listing
         async function refreshFileList() {
             const tbody = document.getElementById('file-list-tbody');
-            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--text-muted); padding:16px;">Loading files from /uploads/...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--muted-foreground); padding:1.25rem;">Loading files from /uploads/...</td></tr>';
 
             try {
                 const res = await fetch('/uploads/');
                 if (!res.ok) {
-                    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--color-delete); padding:16px;">Failed to load /uploads/ (HTTP ${res.status})</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--destructive); padding:1.25rem;">Failed to load /uploads/ (HTTP ${res.status})</td></tr>`;
                     return;
                 }
                 const html = await res.text();
@@ -661,8 +709,8 @@
                 if (links.length === 0) {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="3" style="text-align:center; color:var(--text-muted); padding:24px;">
-                                <p style="margin-bottom:8px;">No files currently in <code>/uploads/</code></p>
+                            <td colspan="3" style="text-align:center; color:var(--muted-foreground); padding:1.75rem;">
+                                <p style="margin-bottom:0.65rem;">No files currently in <code>/uploads/</code></p>
                                 <button type="button" class="btn btn-secondary btn-sm" onclick="createSampleFile()">Create Sample File</button>
                             </td>
                         </tr>
@@ -677,22 +725,22 @@
 
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td class="file-name-cell">
+                        <td style="font-family:var(--font-mono); font-weight:500;">
                             <span>${cleanName}</span>
                         </td>
-                        <td style="font-family:var(--font-mono); color:var(--text-secondary);">${fullPath}</td>
-                        <td>
-                            <div style="display:flex; justify-content:flex-end; gap:6px;">
-                                <button type="button" class="btn btn-secondary btn-sm" onclick="previewFile('${fullPath}')">Preview</button>
-                                <button type="button" class="btn btn-secondary btn-sm" onclick="executeRequest('GET', '${fullPath}')">Inspect GET</button>
-                                <button type="button" class="btn btn-danger btn-sm" onclick="promptDeleteFile('${fullPath}')">Delete</button>
+                        <td style="font-family:var(--font-mono); color:var(--muted-foreground);">${fullPath}</td>
+                        <td style="text-align:right;">
+                            <div style="display:inline-flex; gap:0.35rem;">
+                                <button type="button" class="btn btn-outline btn-sm" onclick="previewFile('${fullPath}')">Preview</button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="executeRequest('GET', '${fullPath}')">Inspect</button>
+                                <button type="button" class="btn btn-destructive btn-sm" onclick="promptDeleteFile('${fullPath}')">Delete</button>
                             </div>
                         </td>
                     `;
                     tbody.appendChild(tr);
                 });
             } catch (err) {
-                tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--color-delete); padding:16px;">Network Error: ${err.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--destructive); padding:1.25rem;">Network Error: ${err.message}</td></tr>`;
             }
         }
 
@@ -748,14 +796,19 @@
             promptDeleteFile(pathToDelete);
         }
 
-        // Delete Modal Handler
         function promptDeleteFile(path) {
             if (!path || !path.trim()) {
                 showToast('Please enter a valid file path to delete.', 'error');
                 return;
             }
             pendingDeletePath = path.trim();
-            document.getElementById('modal-delete-body-text').innerHTML = `Are you sure you want to permanently delete <code style="color:var(--color-delete);">${pendingDeletePath}</code> via HTTP <code>DELETE</code>?`;
+            const bodyEl = document.getElementById('modal-delete-body-text');
+            bodyEl.textContent = 'Are you sure you want to permanently delete ';
+            const codeEl = document.createElement('code');
+            codeEl.style.color = 'var(--destructive)';
+            codeEl.textContent = pendingDeletePath;
+            bodyEl.appendChild(codeEl);
+            bodyEl.appendChild(document.createTextNode(' via HTTP DELETE?'));
             document.getElementById('delete-modal').classList.add('active');
         }
 
@@ -874,7 +927,7 @@
             showToast(`Compliance Suite Complete: ${passedCount}/${SUITE_CHECKS.length} Passed`, passedCount === SUITE_CHECKS.length ? 'success' : 'error');
         }
 
-        // Initialize on load
+        // Initialize on DOM Ready
         document.addEventListener('DOMContentLoaded', () => {
             updateCookieDisplay();
         });
