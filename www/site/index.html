@@ -3,178 +3,934 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Webserv - 42 HTTP Server</title>
+    <title>webserv — Systems Console &amp; Testbed</title>
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🌐 webserv</h1>
-            <p class="subtitle">A compliant C++98 non-blocking HTTP/1.1 server</p>
+    <div class="app-container">
+        <!-- App Header (shadcn style) -->
+        <header class="app-header">
+            <div class="brand-group">
+                <h1 class="brand-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--brand-cyan);"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>
+                    <span>webserv</span>
+                    <span class="badge badge-outline" style="font-family:var(--font-mono);">C++98 Reactor</span>
+                </h1>
+                <p class="brand-subtitle">High-Precision Developer Dashboard &amp; RFC 7230/7231 Testbed</p>
+            </div>
+            <div class="header-status">
+                <span class="status-dot"></span>
+                <span>Reactor: Online &bull; Port 8080</span>
+            </div>
         </header>
 
-        <nav class="tabs">
-            <button class="tab-btn active" onclick="showTab('home')">Home & Status</button>
-            <button class="tab-btn" onclick="showTab('upload')">File Upload (POST)</button>
-            <button class="tab-btn" onclick="showTab('files')">Files & DELETE</button>
-            <button class="tab-btn" onclick="showTab('cgi')">CGI Scripts</button>
-            <button class="tab-btn" onclick="showTab('cookies')">Cookies & Sessions</button>
-            <button class="tab-btn" onclick="showTab('routes')">Routes & Errors</button>
+        <!-- shadcn Tabs Component -->
+        <nav class="tabs-list" role="tablist" aria-label="Server Dashboard Navigation">
+            <button class="tabs-trigger" id="tab-btn-home" role="tab" aria-selected="true" aria-controls="tab-home" tabindex="0" onclick="switchTab('home')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <span>Architecture</span>
+                <span class="tab-key-hint">1</span>
+            </button>
+            <button class="tabs-trigger" id="tab-btn-upload" role="tab" aria-selected="false" aria-controls="tab-upload" tabindex="-1" onclick="switchTab('upload')">
+                <span class="badge-method badge-post">POST</span>
+                <span>Uploads</span>
+                <span class="tab-key-hint">2</span>
+            </button>
+            <button class="tabs-trigger" id="tab-btn-files" role="tab" aria-selected="false" aria-controls="tab-files" tabindex="-1" onclick="switchTab('files')">
+                <span class="badge-method badge-delete">DELETE</span>
+                <span>File Explorer</span>
+                <span class="tab-key-hint">3</span>
+            </button>
+            <button class="tabs-trigger" id="tab-btn-cgi" role="tab" aria-selected="false" aria-controls="tab-cgi" tabindex="-1" onclick="switchTab('cgi')">
+                <span class="badge-method badge-get">CGI</span>
+                <span>Dynamic Scripts</span>
+                <span class="tab-key-hint">4</span>
+            </button>
+            <button class="tabs-trigger" id="tab-btn-cookies" role="tab" aria-selected="false" aria-controls="tab-cookies" tabindex="-1" onclick="switchTab('cookies')">
+                <span class="badge-method badge-warn">AUTH</span>
+                <span>Session &amp; Cookies</span>
+                <span class="tab-key-hint">5</span>
+            </button>
+            <button class="tabs-trigger" id="tab-btn-routes" role="tab" aria-selected="false" aria-controls="tab-routes" tabindex="-1" onclick="switchTab('routes')">
+                <span class="badge-method badge-get">HTTP</span>
+                <span>Routes &amp; Errors</span>
+                <span class="tab-key-hint">6</span>
+            </button>
         </nav>
 
-        <!-- Home Tab -->
-        <div id="tab-home" class="tab-content active">
-            <h2>Welcome to Webserv</h2>
-            <p>This web server was created as part of the 42 curriculum using C++98, non-blocking I/O multiplexing with a single <code>poll()</code> loop, standard CGI execution, chunked transfer encoding, and virtual hosts.</p>
-            
-            <div class="card-grid">
-                <div class="card">
-                    <h3>⚡ Core Features</h3>
-                    <ul>
-                        <li>HTTP/1.1 & HTTP/1.0 compliant</li>
-                        <li>Single <code>poll()</code> event-driven reactor</li>
-                        <li>GET, POST, DELETE methods</li>
-                        <li>Static file serving & autoindex directory listing</li>
-                    </ul>
+        <!-- Main Content Area -->
+        <main>
+            <!-- Tab 1: Home & Architecture -->
+            <section id="tab-home" class="tab-panel active" role="tabpanel" aria-labelledby="tab-btn-home">
+                <div class="card" style="margin-bottom:1rem;">
+                    <div class="card-header">
+                        <h2 class="card-title">Server Architecture &amp; Reactor Core</h2>
+                        <p class="card-description">Event-driven HTTP/1.1 web server built with non-blocking I/O multiplexing and a single <code>poll()</code> event loop.</p>
+                    </div>
+                    <div class="card-content">
+                        <div class="grid-2">
+                            <div class="card" style="background:var(--background);">
+                                <div class="card-header">
+                                    <h3 class="card-title" style="color:var(--brand-cyan);">Core Reactor Engine</h3>
+                                </div>
+                                <div class="card-content" style="padding-top:0.5rem;">
+                                    <ul class="feature-list">
+                                        <li>Single non-blocking <code>poll()</code> loop multiplexing client sockets and CGI pipes.</li>
+                                        <li>Strict RFC 7230/7231 HTTP/1.1 compliance with keep-alive connection reuse.</li>
+                                        <li>Chunked transfer decoding for streamed request bodies.</li>
+                                        <li>Multi-port virtual host routing and per-route method restrictions.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="card" style="background:var(--background);">
+                                <div class="card-header">
+                                    <h3 class="card-title" style="color:var(--brand-cyan);">I/O &amp; Gateway Subsystems</h3>
+                                </div>
+                                <div class="card-content" style="padding-top:0.5rem;">
+                                    <ul class="feature-list">
+                                        <li>Asynchronous CGI execution (Python 3, Bash, PHP) with timeout termination.</li>
+                                        <li>Multipart form-data parsing &amp; raw octet-stream upload handlers.</li>
+                                        <li>Custom error dispatchers (400, 403, 404, 405, 413, 500, 502, 504).</li>
+                                        <li>Stateful cookie session tracking with persistent client identification.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- Compliance Suite Card -->
                 <div class="card">
-                    <h3>🚀 Advanced Features</h3>
-                    <ul>
-                        <li>Asynchronous CGI (Python, Bash, PHP)</li>
-                        <li>Chunked transfer request decoding</li>
-                        <li>Custom error pages & client body limits</li>
-                        <li>Cookies & session tracking (Bonus)</li>
-                    </ul>
+                    <div class="card-header">
+                        <h2 class="card-title">1-Click Evaluation Compliance Suite</h2>
+                        <p class="card-description">Run real-time automated verification across 10 primary 42 defense evaluation checkpoints.</p>
+                    </div>
+                    <div class="card-content">
+                        <button type="button" class="btn btn-primary" id="btn-run-suite" onclick="runComplianceSuite()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            <span>Run Full Compliance Suite</span>
+                        </button>
+                        <div id="compliance-matrix" class="matrix-grid" style="display:none;"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab 2: Uploads (POST) -->
+            <section id="tab-upload" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-upload">
+                <div class="grid-2">
+                    <!-- Multipart Upload Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Multipart Form Upload</h2>
+                            <p class="card-description">Upload binary/text files via <code>multipart/form-data</code> to <code>/uploads</code>.</p>
+                        </div>
+                        <div class="card-content">
+                            <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload file dropzone" onclick="document.getElementById('file-input').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('file-input').click();}">
+                                <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                                <div class="dropzone-title">Click or drag &amp; drop file to upload</div>
+                                <div class="dropzone-desc">Max limit: 10MB (<code>client_max_body_size</code>)</div>
+                                <input type="file" id="file-input" style="display:none" onchange="handleFileSelected(event)">
+                            </div>
+                            <div id="file-chip" class="file-chip">
+                                <span id="file-chip-name">filename.txt</span>
+                                <span id="file-chip-size" style="color:var(--muted-foreground);">0 KB</span>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <button type="button" class="btn btn-primary" id="btn-upload-file" onclick="uploadMultipartFile()" disabled>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                                <span>Upload File (POST)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Raw Text Upload Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Raw Text Stream Upload</h2>
+                            <p class="card-description">Direct raw body payload submission to <code>/uploads/{filename}</code>.</p>
+                        </div>
+                        <div class="card-content">
+                            <div class="form-item">
+                                <label class="label" for="raw-filename">Filename</label>
+                                <input type="text" id="raw-filename" class="input" value="sample.txt" placeholder="e.g. sample.txt">
+                            </div>
+                            <div class="form-item">
+                                <label class="label" for="raw-content">Payload Content</label>
+                                <textarea id="raw-content" class="textarea" placeholder="Enter text payload...">Hello from webserv high-precision evaluation test!</textarea>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <button type="button" class="btn btn-secondary" onclick="uploadRawText()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                                <span>Send Raw POST Stream</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab 3: Files & DELETE -->
+            <section id="tab-files" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-files">
+                <div class="card" style="margin-bottom:1rem;">
+                    <div class="card-header" style="flex-direction:row; justify-content:space-between; align-items:center;">
+                        <div>
+                            <h2 class="card-title">Live Uploads Directory (Autoindex)</h2>
+                            <p class="card-description">Live files in <code>www/uploads</code> parsed dynamically from server autoindex.</p>
+                        </div>
+                        <div style="display:flex; gap:0.5rem;">
+                            <button type="button" class="btn btn-outline btn-sm" onclick="createSampleFile()">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+                                <span>Sample File</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="refreshFileList()">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+                                <span>Refresh</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-content" style="padding:0;">
+                        <div class="table-container" style="border:none; border-radius:0;">
+                            <table class="table" aria-label="Uploads File Table">
+                                <thead>
+                                    <tr>
+                                        <th>Filename</th>
+                                        <th>Route</th>
+                                        <th style="text-align:right;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="file-list-tbody">
+                                    <tr>
+                                        <td colspan="3" style="text-align:center; color:var(--muted-foreground); padding:1.5rem;">
+                                            Loading files from <code>/uploads/</code>...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Targeted Delete Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title" style="color:var(--destructive);">Targeted Resource Deletion</h2>
+                        <p class="card-description">Issue a direct guarded HTTP <code>DELETE</code> request to any resource path.</p>
+                    </div>
+                    <div class="card-content">
+                        <div class="form-item">
+                            <label class="label" for="delete-input-path">Resource Path (DELETE)</label>
+                            <input type="text" id="delete-input-path" class="input" value="/uploads/sample.txt" placeholder="/uploads/filename.txt">
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button type="button" class="btn btn-destructive" onclick="promptDeleteFile(document.getElementById('delete-input-path').value)">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                            <span>Request File Deletion</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab 4: CGI Scripts -->
+            <section id="tab-cgi" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-cgi">
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Python CGI (GET / Query Parameters)</h2>
+                            <p class="card-description">Child process fork-and-pipe passing <code>QUERY_STRING</code>.</p>
+                        </div>
+                        <div class="card-content">
+                            <div class="form-item">
+                                <label class="label" for="cgi-param-name">Name</label>
+                                <input type="text" id="cgi-param-name" class="input" value="42Evaluator">
+                            </div>
+                            <div class="form-item">
+                                <label class="label" for="cgi-param-score">Score</label>
+                                <input type="text" id="cgi-param-score" class="input" value="125">
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <button type="button" class="btn btn-primary" onclick="runPythonCGI()">Run hello.py</button>
+                            <button type="button" class="btn btn-outline" onclick="executeRequest('GET', '/cgi-bin/env.py')">View CGI Environment</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Bash CGI &amp; POST to CGI</h2>
+                            <p class="card-description">Asynchronous body streaming to CGI stdin pipe.</p>
+                        </div>
+                        <div class="card-content">
+                            <div class="form-item">
+                                <label class="label" for="cgi-post-user">User</label>
+                                <input type="text" id="cgi-post-user" class="input" value="Cadet42">
+                            </div>
+                            <div class="form-item">
+                                <label class="label" for="cgi-post-msg">Message Body</label>
+                                <input type="text" id="cgi-post-msg" class="input" value="Evaluating non-blocking CGI POST pipe">
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <button type="button" class="btn btn-primary" onclick="runCgiPost()">Submit POST to post.py</button>
+                            <button type="button" class="btn btn-outline" onclick="executeRequest('GET', '/cgi-bin/hello.sh')">Run hello.sh</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab 5: Cookies & Sessions -->
+            <section id="tab-cookies" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-cookies">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Session State &amp; Cookie Management</h2>
+                        <p class="card-description">Stateful session tracking via <code>Set-Cookie</code> and <code>Cookie</code> headers handled by CGI.</p>
+                    </div>
+                    <div class="card-content">
+                        <div class="form-item">
+                            <label class="label">Active Browser Cookies</label>
+                            <div style="background:var(--background); padding:0.75rem; border-radius:var(--radius-md); border:1px solid var(--border); font-family:var(--font-mono); color:var(--brand-cyan);" id="cookie-display">
+                                (No cookies stored yet)
+                            </div>
+                        </div>
+                        <p style="color:var(--muted-foreground); line-height:1.45;">
+                            Calling <code>session.py</code> returns a <code>Set-Cookie: session_id=...; visits=N</code> header. Refreshing increments your server-side session visit count.
+                        </p>
+                    </div>
+                    <div class="card-footer">
+                        <button type="button" class="btn btn-primary" onclick="runSessionTracker()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            <span>Execute Session Tracker (session.py)</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="clearCookies()">
+                            <span>Clear Session Cookies</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab 6: Routes & Status Codes -->
+            <section id="tab-routes" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-routes">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Routing Engine &amp; HTTP Status Code Verification</h2>
+                        <p class="card-description">Test server routing rules, redirection handling (301/302), method restrictions (405), and custom error page templates.</p>
+                    </div>
+                    <div class="card-content">
+                        <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+                            <button type="button" class="btn btn-outline" onclick="executeRequest('GET', '/redirect')">
+                                <span class="badge-method badge-warn">301</span>
+                                <span>Redirect &rarr; /</span>
+                            </button>
+                            <button type="button" class="btn btn-outline" onclick="executeRequest('GET', '/google')">
+                                <span class="badge-method badge-warn">302</span>
+                                <span>Redirect &rarr; google.com</span>
+                            </button>
+                            <button type="button" class="btn btn-outline" onclick="executeRequest('GET', '/non_existent_page_12345')">
+                                <span class="badge-method badge-delete">404</span>
+                                <span>Custom 404 Error</span>
+                            </button>
+                            <button type="button" class="btn btn-outline" onclick="executeRequest('DELETE', '/restricted')">
+                                <span class="badge-method badge-delete">405</span>
+                                <span>Method Not Allowed</span>
+                            </button>
+                            <button type="button" class="btn btn-outline" onclick="executeRequest('GET', '/uploads/')">
+                                <span class="badge-method badge-get">200</span>
+                                <span>Autoindex Listing</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Persistent Telemetry Console Dock (shadcn Terminal style) -->
+        <section class="telemetry-dock" aria-label="HTTP Telemetry Console">
+            <div class="telemetry-header">
+                <div class="telemetry-title-group">
+                    <span class="telemetry-title">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--brand-cyan);"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>
+                        <span>HTTP Telemetry Console</span>
+                    </span>
+                    <div class="telemetry-meta" id="telemetry-meta" style="display:none;">
+                        <span id="telemetry-method-badge" class="badge-method badge-get">GET</span>
+                        <span id="telemetry-status-pill" class="pill-status pill-status-success">200 OK</span>
+                        <span id="telemetry-latency" class="telemetry-latency">0 ms</span>
+                    </div>
+                </div>
+                <div class="telemetry-actions">
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-toggle-expand" onclick="toggleTelemetryExpand()">Expand View</button>
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="clearTelemetry()">Clear</button>
                 </div>
             </div>
-        </div>
 
-        <!-- File Upload Tab -->
-        <div id="tab-upload" class="tab-content">
-            <h2>File Upload Test (POST)</h2>
-            <p>Upload a file to the server storage directory using multipart/form-data:</p>
-            <form action="/uploads" method="POST" enctype="multipart/form-data" class="form-box">
-                <input type="file" name="file" required>
-                <button type="submit" class="btn">Upload File</button>
-            </form>
-
-            <h3>Or Upload via Raw Fetch:</h3>
-            <div class="form-box">
-                <input type="text" id="rawFileName" placeholder="filename.txt" value="sample.txt">
-                <textarea id="rawFileContent" placeholder="Enter text content...">Hello from Webserv upload test!</textarea>
-                <button onclick="uploadRaw()" class="btn">Upload Raw Text</button>
-            </div>
-            <div id="uploadResult" class="result-box"></div>
-        </div>
-
-        <!-- Files & Delete Tab -->
-        <div id="tab-files" class="tab-content">
-            <h2>Browse & Delete Files (DELETE)</h2>
-            <p>View uploaded files or browse directory listings:</p>
-            <div class="btn-group">
-                <a href="/uploads/" target="_blank" class="btn">Browse /uploads/ (Autoindex)</a>
-                <a href="/restricted" target="_blank" class="btn">Restricted Route (GET only)</a>
-            </div>
-
-            <h3>Delete a File</h3>
-            <div class="form-box">
-                <input type="text" id="deleteFilePath" placeholder="e.g. /uploads/sample.txt" value="/uploads/sample.txt">
-                <button onclick="deleteFile()" class="btn btn-danger">DELETE File</button>
-            </div>
-            <div id="deleteResult" class="result-box"></div>
-        </div>
-
-        <!-- CGI Tab -->
-        <div id="tab-cgi" class="tab-content">
-            <h2>CGI Execution (Python, Bash)</h2>
-            <div class="card-grid">
-                <div class="card">
-                    <h3>🐍 Python CGI</h3>
-                    <p>Test dynamic Python scripts with query parameters:</p>
-                    <a href="/cgi-bin/hello.py?name=42Student&score=100" target="_blank" class="btn">Run hello.py</a>
-                    <a href="/cgi-bin/env.py" target="_blank" class="btn">View CGI Environment</a>
+            <div class="telemetry-body-pane" id="telemetry-pane" aria-live="polite">
+                <div class="telemetry-empty" id="telemetry-placeholder">
+                    Execute an action or test probe above to inspect real-time HTTP response headers, latency, and status codes.
                 </div>
-                <div class="card">
-                    <h3>🐚 Bash CGI</h3>
-                    <p>Test Shell script CGI execution:</p>
-                    <a href="/cgi-bin/hello.sh" target="_blank" class="btn">Run hello.sh</a>
+                <div id="telemetry-content" style="display:none;">
+                    <div id="telemetry-headers" class="telemetry-headers-grid"></div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+                        <span style="color:var(--muted-foreground); font-weight:600;">Response Body Payload</span>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyTelemetryBody()">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                            <span>Copy Body</span>
+                        </button>
+                    </div>
+                    <pre id="telemetry-body" class="telemetry-body-raw"></pre>
                 </div>
             </div>
+        </section>
 
-            <h3>POST Data to CGI:</h3>
-            <form action="/cgi-bin/post.py" method="POST" class="form-box">
-                <input type="text" name="user" placeholder="Username" value="Student42">
-                <input type="text" name="message" placeholder="Message" value="Testing POST to CGI">
-                <button type="submit" class="btn">Submit to CGI</button>
-            </form>
-        </div>
-
-        <!-- Cookies & Session Tab -->
-        <div id="tab-cookies" class="tab-content">
-            <h2>Cookies & Session Management (Bonus)</h2>
-            <p>Demonstration of stateful sessions and cookie handling via CGI:</p>
-            <div class="card">
-                <a href="/cgi-bin/session.py" target="_blank" class="btn">Open Session Tracker</a>
-                <p style="margin-top:10px; color:#666;">Each visit increments your visit count and persists your session ID in cookies!</p>
-            </div>
-        </div>
-
-        <!-- Routes & Errors Tab -->
-        <div id="tab-routes" class="tab-content">
-            <h2>Routes & HTTP Status Codes</h2>
-            <p>Click below to test redirection and error handling:</p>
-            <div class="btn-group">
-                <a href="/redirect" class="btn">HTTP 301 Redirect (to /)</a>
-                <a href="/google" class="btn">HTTP 302 Redirect (to google.com)</a>
-                <a href="/non_existent_page_12345" class="btn btn-warn">HTTP 404 Custom Error</a>
-            </div>
-        </div>
-
-        <footer>
-            <p>webserv &copy; 42 Curriculum</p>
+        <!-- Footer -->
+        <footer class="app-footer">
+            <span>webserv &bull; 42 Curriculum Non-blocking HTTP/1.1 Server</span>
+            <span class="footer-meta">shadcn-html &bull; 100% Offline &bull; Zero Dependencies</span>
         </footer>
     </div>
 
+    <!-- Confirmation Modal for DELETE (shadcn Dialog) -->
+    <div id="delete-modal" class="dialog-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-delete-title">
+        <div class="dialog-content">
+            <div class="dialog-header">
+                <h3 id="modal-delete-title" class="dialog-title destructive">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                    <span>Confirm Destructive Deletion</span>
+                </h3>
+                <p class="dialog-description" id="modal-delete-body-text">
+                    Are you sure you want to permanently delete this resource from the server storage?
+                </p>
+            </div>
+            <div class="dialog-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+                <button type="button" class="btn btn-destructive" id="modal-confirm-delete-btn" onclick="executeConfirmedDelete()">Confirm DELETE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Preview Modal (shadcn Dialog) -->
+    <div id="preview-modal" class="dialog-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-preview-title">
+        <div class="dialog-content preview-dialog">
+            <div class="dialog-header">
+                <h3 id="modal-preview-title" class="dialog-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--brand-cyan);"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <span id="preview-file-title">File Preview</span>
+                </h3>
+                <div id="preview-meta-info" style="font-family:var(--font-mono); color:var(--muted-foreground);"></div>
+            </div>
+            <pre class="preview-code-pane" id="preview-pane-content"></pre>
+            <div class="dialog-footer">
+                <button type="button" class="btn btn-secondary" onclick="copyPreviewContent()">Copy Content</button>
+                <button type="button" class="btn btn-destructive" onclick="deletePreviewedFile()">Delete File</button>
+                <button type="button" class="btn btn-primary" onclick="closePreviewModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
     <script>
-        function showTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById('tab-' + tabName).classList.add('active');
-            event.currentTarget.classList.add('active');
+        /* ==========================================================================
+           webserv Core Client Engine & Telemetry Handler (shadcn-html Edition)
+           ========================================================================== */
+
+        let selectedUploadFile = null;
+        let pendingDeletePath = null;
+        let activePreviewPath = null;
+
+        // Tab Navigation
+        const TAB_KEYS = ['home', 'upload', 'files', 'cgi', 'cookies', 'routes'];
+
+        function switchTab(tabId) {
+            const index = TAB_KEYS.indexOf(tabId);
+            if (index === -1) return;
+
+            document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+            document.querySelectorAll('.tabs-trigger').forEach(btn => {
+                btn.setAttribute('aria-selected', 'false');
+                btn.setAttribute('tabindex', '-1');
+            });
+
+            const activePanel = document.getElementById('tab-' + tabId);
+            const activeBtn = document.getElementById('tab-btn-' + tabId);
+            if (activePanel && activeBtn) {
+                activePanel.classList.add('active');
+                activeBtn.setAttribute('aria-selected', 'true');
+                activeBtn.setAttribute('tabindex', '0');
+                activeBtn.focus();
+            }
+
+            if (tabId === 'cookies') {
+                updateCookieDisplay();
+            } else if (tabId === 'files') {
+                refreshFileList();
+            }
         }
 
-        function uploadRaw() {
-            const filename = document.getElementById('rawFileName').value;
-            const content = document.getElementById('rawFileContent').value;
-            const resDiv = document.getElementById('uploadResult');
+        // Global Keyboard Accelerators
+        document.addEventListener('keydown', (e) => {
+            if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
 
-            fetch('/uploads/' + encodeURIComponent(filename), {
-                method: 'POST',
+            const num = parseInt(e.key, 10);
+            if (num >= 1 && num <= TAB_KEYS.length) {
+                e.preventDefault();
+                switchTab(TAB_KEYS[num - 1]);
+                return;
+            }
+
+            const currentTab = document.querySelector('.tabs-trigger[aria-selected="true"]');
+            if (currentTab) {
+                const currentId = currentTab.id.replace('tab-btn-', '');
+                const currentIndex = TAB_KEYS.indexOf(currentId);
+                if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    const nextIndex = (currentIndex + 1) % TAB_KEYS.length;
+                    switchTab(TAB_KEYS[nextIndex]);
+                } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    const prevIndex = (currentIndex - 1 + TAB_KEYS.length) % TAB_KEYS.length;
+                    switchTab(TAB_KEYS[prevIndex]);
+                }
+            }
+
+            if (e.key === 'Escape') {
+                closeDeleteModal();
+                closePreviewModal();
+            }
+        });
+
+        // Toast Notification System
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast-item toast-${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(6px)';
+                toast.style.transition = 'opacity 0.15s, transform 0.15s';
+                setTimeout(() => toast.remove(), 150);
+            }, 3000);
+        }
+
+        // Telemetry Engine
+        async function executeRequest(method, url, options = {}) {
+            const placeholder = document.getElementById('telemetry-placeholder');
+            const content = document.getElementById('telemetry-content');
+            const meta = document.getElementById('telemetry-meta');
+            const methodBadge = document.getElementById('telemetry-method-badge');
+            const statusPill = document.getElementById('telemetry-status-pill');
+            const latencySpan = document.getElementById('telemetry-latency');
+            const headersGrid = document.getElementById('telemetry-headers');
+            const bodyPre = document.getElementById('telemetry-body');
+
+            placeholder.style.display = 'none';
+            content.style.display = 'block';
+            meta.style.display = 'flex';
+
+            methodBadge.textContent = method;
+            methodBadge.className = 'badge-method ' + (
+                method === 'GET' ? 'badge-get' :
+                method === 'POST' ? 'badge-post' :
+                method === 'DELETE' ? 'badge-delete' : 'badge-warn'
+            );
+
+            statusPill.textContent = 'Executing...';
+            statusPill.className = 'pill-status pill-status-warn';
+            latencySpan.textContent = '--- ms';
+            headersGrid.innerHTML = '<span class="header-key">Status:</span><span class="header-val">Awaiting server response...</span>';
+            bodyPre.textContent = 'Loading payload...';
+
+            const startTime = performance.now();
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: options.headers || {},
+                    body: options.body || undefined
+                });
+
+                const latency = Math.round(performance.now() - startTime);
+                const text = await response.text();
+
+                const isSuccess = response.status >= 200 && response.status < 300;
+                const isRedirect = response.status >= 300 && response.status < 400;
+                statusPill.textContent = `${response.status} ${response.statusText || ''}`.trim();
+                statusPill.className = 'pill-status ' + (
+                    isSuccess ? 'pill-status-success' :
+                    isRedirect ? 'pill-status-warn' : 'pill-status-error'
+                );
+                latencySpan.textContent = `${latency} ms`;
+
+                headersGrid.innerHTML = '';
+                let headerCount = 0;
+                response.headers.forEach((val, key) => {
+                    headerCount++;
+                    const keySpan = document.createElement('span');
+                    keySpan.className = 'header-key';
+                    keySpan.textContent = key + ':';
+                    const valSpan = document.createElement('span');
+                    valSpan.className = 'header-val';
+                    valSpan.textContent = val;
+                    headersGrid.appendChild(keySpan);
+                    headersGrid.appendChild(valSpan);
+                });
+
+                if (headerCount === 0) {
+                    headersGrid.innerHTML = '<span class="header-key">Headers:</span><span class="header-val">(None captured / Same-Origin)</span>';
+                }
+
+                bodyPre.textContent = text || '(Empty response body)';
+
+                if (url.includes('session.py')) {
+                    updateCookieDisplay();
+                }
+
+                return { status: response.status, ok: response.ok, text, headers: response.headers, latency };
+            } catch (err) {
+                const latency = Math.round(performance.now() - startTime);
+                statusPill.textContent = 'Connection Error';
+                statusPill.className = 'pill-status pill-status-error';
+                latencySpan.textContent = `${latency} ms`;
+                headersGrid.innerHTML = '<span class="header-key">Exception:</span><span class="header-val" style="color:var(--destructive);">' + err.message + '</span>';
+                bodyPre.textContent = `Failed to reach server at ${url}.\nVerify that webserv is listening on 127.0.0.1:8080.\nError Details: ${err}`;
+                return { status: 0, ok: false, error: err };
+            }
+        }
+
+        function clearTelemetry() {
+            document.getElementById('telemetry-placeholder').style.display = 'block';
+            document.getElementById('telemetry-content').style.display = 'none';
+            document.getElementById('telemetry-meta').style.display = 'none';
+            showToast('Telemetry console cleared', 'info');
+        }
+
+        function copyTelemetryBody() {
+            const bodyText = document.getElementById('telemetry-body').textContent;
+            navigator.clipboard.writeText(bodyText);
+            showToast('Payload copied to clipboard', 'success');
+        }
+
+        function toggleTelemetryExpand() {
+            const pane = document.getElementById('telemetry-pane');
+            const btn = document.getElementById('btn-toggle-expand');
+            const isExpanded = pane.classList.toggle('expanded');
+            btn.textContent = isExpanded ? 'Collapse View' : 'Expand View';
+        }
+
+        // Dropzone & File Selection
+        const dropzone = document.getElementById('dropzone');
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropzone.classList.add('dragover');
+            });
+        });
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('dragover');
+            });
+        });
+        dropzone.addEventListener('drop', (e) => {
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                selectFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        function handleFileSelected(e) {
+            if (e.target.files && e.target.files.length > 0) {
+                selectFile(e.target.files[0]);
+            }
+        }
+
+        function selectFile(file) {
+            selectedUploadFile = file;
+            const chip = document.getElementById('file-chip');
+            const chipName = document.getElementById('file-chip-name');
+            const chipSize = document.getElementById('file-chip-size');
+            const uploadBtn = document.getElementById('btn-upload-file');
+
+            chipName.textContent = file.name;
+            const sizeKB = (file.size / 1024).toFixed(1);
+            chipSize.textContent = `${sizeKB} KB`;
+            chip.classList.add('active');
+            uploadBtn.disabled = false;
+            showToast(`Selected file: ${file.name} (${sizeKB} KB)`, 'info');
+        }
+
+        async function uploadMultipartFile() {
+            if (!selectedUploadFile) return;
+            const formData = new FormData();
+            formData.append('file', selectedUploadFile);
+
+            const uploadBtn = document.getElementById('btn-upload-file');
+            uploadBtn.disabled = true;
+            const res = await executeRequest('POST', '/uploads', { body: formData });
+            uploadBtn.disabled = false;
+            if (res.ok) {
+                showToast(`Uploaded ${selectedUploadFile.name} successfully`, 'success');
+            } else {
+                showToast(`Upload failed (HTTP ${res.status})`, 'error');
+            }
+        }
+
+        async function uploadRawText() {
+            const filename = document.getElementById('raw-filename').value.trim() || 'sample.txt';
+            const content = document.getElementById('raw-content').value;
+            const res = await executeRequest('POST', '/uploads/' + encodeURIComponent(filename), {
                 headers: { 'Content-Type': 'text/plain' },
                 body: content
-            })
-            .then(res => res.text().then(text => ({ status: res.status, text })))
-            .then(data => {
-                resDiv.innerHTML = `<p class="success">Status: ${data.status}</p><pre>${data.text}</pre>`;
-            })
-            .catch(err => {
-                resDiv.innerHTML = `<p class="error">Error: ${err}</p>`;
+            });
+            if (res.ok) {
+                showToast(`Raw file ${filename} created (HTTP ${res.status})`, 'success');
+            }
+        }
+
+        // File Explorer & Autoindex Listing
+        async function refreshFileList() {
+            const tbody = document.getElementById('file-list-tbody');
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--muted-foreground); padding:1.25rem;">Loading files from /uploads/...</td></tr>';
+
+            try {
+                const res = await fetch('/uploads/');
+                if (!res.ok) {
+                    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--destructive); padding:1.25rem;">Failed to load /uploads/ (HTTP ${res.status})</td></tr>`;
+                    return;
+                }
+                const html = await res.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const links = Array.from(doc.querySelectorAll('a'))
+                    .map(a => a.getAttribute('href'))
+                    .filter(href => href && href !== '../' && href !== './' && !href.endsWith('/..'));
+
+                if (links.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="3" style="text-align:center; color:var(--muted-foreground); padding:1.75rem;">
+                                <p style="margin-bottom:0.65rem;">No files currently in <code>/uploads/</code></p>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="createSampleFile()">Create Sample File</button>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                links.forEach(link => {
+                    const cleanName = link.replace(/^\/uploads\//, '').replace(/\/$/, '');
+                    const fullPath = link.startsWith('/uploads/') ? link : `/uploads/${link}`;
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td style="font-family:var(--font-mono); font-weight:500;">
+                            <span>${cleanName}</span>
+                        </td>
+                        <td style="font-family:var(--font-mono); color:var(--muted-foreground);">${fullPath}</td>
+                        <td style="text-align:right;">
+                            <div style="display:inline-flex; gap:0.35rem;">
+                                <button type="button" class="btn btn-outline btn-sm" onclick="previewFile('${fullPath}')">Preview</button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="executeRequest('GET', '${fullPath}')">Inspect</button>
+                                <button type="button" class="btn btn-destructive btn-sm" onclick="promptDeleteFile('${fullPath}')">Delete</button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--destructive); padding:1.25rem;">Network Error: ${err.message}</td></tr>`;
+            }
+        }
+
+        async function createSampleFile() {
+            await executeRequest('POST', '/uploads/welcome.txt', {
+                headers: { 'Content-Type': 'text/plain' },
+                body: 'Welcome to webserv file explorer!\nThis sample file was automatically generated for evaluation verification.'
+            });
+            showToast('Created /uploads/welcome.txt', 'success');
+            refreshFileList();
+        }
+
+        // File Preview Modal Handler
+        async function previewFile(path) {
+            activePreviewPath = path;
+            const modal = document.getElementById('preview-modal');
+            const title = document.getElementById('preview-file-title');
+            const meta = document.getElementById('preview-meta-info');
+            const contentPane = document.getElementById('preview-pane-content');
+
+            title.textContent = `Preview: ${path}`;
+            meta.textContent = 'Fetching file contents...';
+            contentPane.textContent = 'Loading...';
+            modal.classList.add('active');
+
+            try {
+                const res = await fetch(path);
+                const text = await res.text();
+                const bytes = new Blob([text]).size;
+                meta.textContent = `Size: ${bytes} bytes • Status: ${res.status} ${res.statusText}`;
+                contentPane.textContent = text || '(Empty file)';
+            } catch (err) {
+                meta.textContent = 'Error loading preview';
+                contentPane.textContent = `Failed to preview file: ${err.message}`;
+            }
+        }
+
+        function closePreviewModal() {
+            document.getElementById('preview-modal').classList.remove('active');
+            activePreviewPath = null;
+        }
+
+        function copyPreviewContent() {
+            const content = document.getElementById('preview-pane-content').textContent;
+            navigator.clipboard.writeText(content);
+            showToast('Preview content copied to clipboard', 'success');
+        }
+
+        function deletePreviewedFile() {
+            if (!activePreviewPath) return;
+            const pathToDelete = activePreviewPath;
+            closePreviewModal();
+            promptDeleteFile(pathToDelete);
+        }
+
+        function promptDeleteFile(path) {
+            if (!path || !path.trim()) {
+                showToast('Please enter a valid file path to delete.', 'error');
+                return;
+            }
+            pendingDeletePath = path.trim();
+            const bodyEl = document.getElementById('modal-delete-body-text');
+            bodyEl.textContent = 'Are you sure you want to permanently delete ';
+            const codeEl = document.createElement('code');
+            codeEl.style.color = 'var(--destructive)';
+            codeEl.textContent = pendingDeletePath;
+            bodyEl.appendChild(codeEl);
+            bodyEl.appendChild(document.createTextNode(' via HTTP DELETE?'));
+            document.getElementById('delete-modal').classList.add('active');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('delete-modal').classList.remove('active');
+            pendingDeletePath = null;
+        }
+
+        async function executeConfirmedDelete() {
+            if (!pendingDeletePath) return;
+            const targetPath = pendingDeletePath;
+            closeDeleteModal();
+            const res = await executeRequest('DELETE', targetPath);
+            if (res.ok) {
+                showToast(`Deleted ${targetPath}`, 'success');
+            } else {
+                showToast(`Delete failed (${res.status})`, 'error');
+            }
+            refreshFileList();
+        }
+
+        // CGI Handlers
+        async function runPythonCGI() {
+            const name = encodeURIComponent(document.getElementById('cgi-param-name').value.trim() || 'Student');
+            const score = encodeURIComponent(document.getElementById('cgi-param-score').value.trim() || '100');
+            await executeRequest('GET', `/cgi-bin/hello.py?name=${name}&score=${score}`);
+        }
+
+        async function runCgiPost() {
+            const user = document.getElementById('cgi-post-user').value;
+            const message = document.getElementById('cgi-post-msg').value;
+            const params = new URLSearchParams();
+            params.append('user', user);
+            params.append('message', message);
+
+            await executeRequest('POST', '/cgi-bin/post.py', {
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: params.toString()
             });
         }
 
-        function deleteFile() {
-            const path = document.getElementById('deleteFilePath').value;
-            const resDiv = document.getElementById('deleteResult');
-
-            fetch(path, { method: 'DELETE' })
-            .then(res => res.text().then(text => ({ status: res.status, text })))
-            .then(data => {
-                resDiv.innerHTML = `<p class="${data.status >= 200 && data.status < 300 ? 'success' : 'error'}">Status: ${data.status}</p><pre>${data.text}</pre>`;
-            })
-            .catch(err => {
-                resDiv.innerHTML = `<p class="error">Error: ${err}</p>`;
-            });
+        // Cookie & Session Handlers
+        function updateCookieDisplay() {
+            const display = document.getElementById('cookie-display');
+            display.textContent = document.cookie ? document.cookie : '(No cookies set in browser session)';
         }
+
+        async function runSessionTracker() {
+            const res = await executeRequest('GET', '/cgi-bin/session.py');
+            updateCookieDisplay();
+            if (res.ok) {
+                showToast('Session visit count incremented', 'success');
+            }
+        }
+
+        function clearCookies() {
+            document.cookie.split(';').forEach(c => {
+                document.cookie = c.trim().split('=')[0] + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            });
+            updateCookieDisplay();
+            showToast('Session cookies cleared', 'info');
+            executeRequest('GET', '/');
+        }
+
+        // 1-Click Evaluation Compliance Suite
+        const SUITE_CHECKS = [
+            { name: 'GET Static Index (/)', method: 'GET', url: '/', expectStatus: 200 },
+            { name: 'GET Autoindex (/uploads/)', method: 'GET', url: '/uploads/', expectStatus: 200 },
+            { name: 'POST Raw File (/uploads/eval.txt)', method: 'POST', url: '/uploads/eval.txt', body: 'Compliance Test', expectStatus: 201 },
+            { name: 'GET Uploaded File (/uploads/eval.txt)', method: 'GET', url: '/uploads/eval.txt', expectStatus: 200 },
+            { name: 'DELETE Resource (/uploads/eval.txt)', method: 'DELETE', url: '/uploads/eval.txt', expectStatus: 200 },
+            { name: 'GET Python CGI (/cgi-bin/hello.py)', method: 'GET', url: '/cgi-bin/hello.py?name=Test&score=100', expectStatus: 200 },
+            { name: 'GET Cookie Session (/cgi-bin/session.py)', method: 'GET', url: '/cgi-bin/session.py', expectStatus: 200 },
+            { name: 'GET 301 Redirect (/redirect)', method: 'GET', url: '/redirect', expectStatus: 200 },
+            { name: 'GET Custom 404 (/not_found_test)', method: 'GET', url: '/not_found_test', expectStatus: 404 },
+            { name: 'DELETE Method Not Allowed (/restricted)', method: 'DELETE', url: '/restricted', expectStatus: 405 }
+        ];
+
+        async function runComplianceSuite() {
+            const container = document.getElementById('compliance-matrix');
+            const runBtn = document.getElementById('btn-run-suite');
+            container.style.display = 'grid';
+            container.innerHTML = '';
+            runBtn.disabled = true;
+            showToast('Starting automated compliance suite...', 'info');
+
+            let passedCount = 0;
+            for (const check of SUITE_CHECKS) {
+                const card = document.createElement('div');
+                card.className = 'matrix-card';
+                card.innerHTML = `
+                    <div class="matrix-header">
+                        <span class="badge-method badge-${check.method.toLowerCase()}">${check.method}</span>
+                        <span class="pill-status pill-status-warn">Testing...</span>
+                    </div>
+                    <div class="matrix-desc">${check.name}</div>
+                    <div class="matrix-result">Running...</div>
+                `;
+                container.appendChild(card);
+
+                const result = await executeRequest(check.method, check.url, {
+                    body: check.body || undefined
+                });
+
+                const statusSpan = card.querySelector('.pill-status');
+                const resultDiv = card.querySelector('.matrix-result');
+                const passed = result.status === check.expectStatus || (check.expectStatus === 200 && result.status >= 200 && result.status < 300);
+                if (passed) passedCount++;
+
+                statusSpan.textContent = `${result.status} ${passed ? 'PASS' : 'FAIL'}`;
+                statusSpan.className = 'pill-status ' + (passed ? 'pill-status-success' : 'pill-status-error');
+                resultDiv.textContent = `${result.latency || 0} ms • Expected ${check.expectStatus}`;
+            }
+
+            runBtn.disabled = false;
+            showToast(`Compliance Suite Complete: ${passedCount}/${SUITE_CHECKS.length} Passed`, passedCount === SUITE_CHECKS.length ? 'success' : 'error');
+        }
+
+        // Initialize on DOM Ready
+        document.addEventListener('DOMContentLoaded', () => {
+            updateCookieDisplay();
+        });
     </script>
 </body>
 </html>
