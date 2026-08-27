@@ -35,6 +35,9 @@ public:
     bool isTooLarge() const;
     const std::string& getDecodedBody() const;
     void setMaxBodySize(size_t size);
+    // Hands back bytes received past the terminal chunk, which belong to the
+    // next pipelined request rather than to this body.
+    std::string takeLeftover();
     void reset();
 };
 

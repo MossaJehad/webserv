@@ -130,9 +130,8 @@ void Listener::handleRead() {
         return;
     }
 
-    // We already own clientFd. If setting up the connection fails (allocation
-    // failure under memory pressure), the descriptor must be released here or
-    // it leaks for the lifetime of the process.
+    // createConnection() takes ownership of clientFd on every path, including
+    // failure, so this must not close the descriptor itself.
     try {
         _connManager->createConnection(clientFd,
                                        formatIpv4(clientAddr.sin_addr),
@@ -142,7 +141,6 @@ void Listener::handleRead() {
                                        *_registry);
     } catch (...) {
         Logger::error("Rejecting connection: failed to allocate connection state");
-        close(clientFd);
     }
 }
 

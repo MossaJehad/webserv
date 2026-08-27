@@ -238,11 +238,15 @@ void CgiProcess::handleStdinWrite() {
 
     if (bytes > 0) {
         _inputWritten += bytes;
+        if (_inputWritten >= _inputBody.size()) {
+            closeStdin(); // body delivered in full: let the child see EOF
+        }
+        return;
     }
 
-    if (_inputWritten >= _inputBody.size() || bytes <= 0) {
-        closeStdin();
-    }
+    // bytes == 0 means no progress, bytes < 0 means the pipe is broken (the
+    // script exited without reading its body). Either way stop feeding it.
+    closeStdin();
 }
 
 void CgiProcess::handleStdoutRead() {

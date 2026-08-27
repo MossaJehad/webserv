@@ -45,7 +45,8 @@ private:
     bool _lingerOnClose;
 
     void processRequest();
-    void sendError(int statusCode, const ServerConfig* server = NULL);
+    void sendError(int statusCode, const ServerConfig* server = NULL,
+                   const std::string& allow = "");
     void applyHeadSemantics(HttpResponse& response) const;
     void queueResponse(HttpResponse& response);
     void consume(const char* data, size_t len);

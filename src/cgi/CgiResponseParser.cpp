@@ -72,7 +72,10 @@ HttpResponse CgiResponseParser::parse(const std::string& rawOutput) {
         std::string val = StringUtils::trim(line.substr(colon + 1));
         std::string lowerKey = StringUtils::toLower(key);
 
-        if (lowerKey != "status" && !isSafeHeaderField(key, val)) {
+        // The Status field is no more trustworthy than the others: its reason
+        // phrase is copied into our status line, so a control byte there could
+        // forge or truncate the response head.
+        if (!isSafeHeaderField(key, val)) {
             continue; // malformed field from the script: do not relay it
         }
 

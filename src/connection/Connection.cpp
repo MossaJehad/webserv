@@ -110,13 +110,20 @@ void Connection::handleTimeout() {
     }
 }
 
-void Connection::sendError(int statusCode, const ServerConfig* server) {
+void Connection::sendError(int statusCode, const ServerConfig* server,
+                           const std::string& allow) {
     HttpResponse errResp = ErrorResponse::build(statusCode, server);
+    if (!allow.empty()) {
+        errResp.getHeaders().set("Allow", allow);
+    }
     errResp.setKeepAlive(false);
     _keepAlive = false;
     // Answering before the announced body arrived means the peer is still
     // sending; remember to drain instead of resetting the connection.
     _lingerOnClose = _parser.wasBodyTruncated();
+    // HEAD semantics apply to every response, errors included: the headers must
+    // match what a GET would return, but no payload may be sent.
+    applyHeadSemantics(errResp);
     std::string serialized = ResponseSerializer::serialize(errResp);
     _outBuffer.clear();
     _outBuffer.append(serialized);
@@ -177,7 +184,7 @@ void Connection::processRequest() {
 
     } catch (const HttpError& e) {
         const ServerConfig& srv = Router::matchServer(_servers, req.getHost(), _serverPort);
-        sendError(e.getStatusCode(), &srv);
+        sendError(e.getStatusCode(), &srv, e.getAllow());
     } catch (...) {
         sendError(500, NULL);
     }
@@ -201,9 +208,14 @@ void Connection::handleRead() {
     char buffer[65536];
     ssize_t bytes = recv(_socket.getFd(), buffer, sizeof(buffer), 0);
 
-    if (bytes <= 0) {
-        // EOF or client disconnected
-        close();
+    // Both outcomes remove the client, but they are distinct events: 0 is an
+    // orderly shutdown by the peer, negative is a failed socket.
+    if (bytes == 0) {
+        close(); // peer closed the connection
+        return;
+    }
+    if (bytes < 0) {
+        close(); // recv() failed on this socket
         return;
     }
 
@@ -236,9 +248,9 @@ void Connection::drainWhileBusy() {
     char buffer[8192];
     ssize_t bytes = recv(_socket.getFd(), buffer, sizeof(buffer), 0);
 
-    if (bytes <= 0) {
-        Logger::info("Client disconnected while CGI was running on fd " +
-                     StringUtils::toString(getFd()));
+    if (bytes == 0 || bytes < 0) {
+        Logger::info(std::string(bytes == 0 ? "Client closed" : "Socket failed")
+                     + " while CGI was running on fd " + StringUtils::toString(getFd()));
         close(); // also kills and reaps the CGI child
         return;
     }
@@ -313,10 +325,10 @@ void Connection::finishResponse() {
 void Connection::drainLinger() {
     char scratch[65536];
     ssize_t bytes = recv(_socket.getFd(), scratch, sizeof(scratch), 0);
-    if (bytes <= 0) {
-        close(); // peer finished or vanished
+    if (bytes == 0 || bytes < 0) {
+        close(); // peer finished (0) or the socket failed (<0)
     }
-    // Data is deliberately discarded: a response has already been sent.
+    // Otherwise the data is deliberately discarded: a response was already sent.
 }
 
 void Connection::handleWrite() {
@@ -332,10 +344,19 @@ void Connection::handleWrite() {
     }
 
     ssize_t bytes = send(_socket.getFd(), _outBuffer.data(), _outBuffer.size(), 0);
+
+    // All three outcomes are handled explicitly: progress, no progress, error.
     if (bytes > 0) {
         _outBuffer.consume(static_cast<size_t>(bytes));
-    } else if (bytes < 0) {
+    } else if (bytes == 0) {
+        // poll() reported writability yet nothing could be queued. Retrying
+        // would spin on a socket that cannot make progress, so give up on it.
+        Logger::info("send() made no progress on fd " +
+                     StringUtils::toString(getFd()) + "; closing");
         close();
+        return;
+    } else {
+        close(); // send() failed: the peer is gone
         return;
     }
 

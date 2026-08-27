@@ -376,9 +376,10 @@ def test_keep_alive_and_pipelining():
                 break
             data += chunk
         s.close()
+        statuses = re.findall(rb"HTTP/1\.1 (\d{3}) ", data)
         check("Pipelined requests both answered",
-              data.count(b"HTTP/1.1 200") == 2,
-              f"responses={data.count(b'HTTP/1.1 200')}")
+              statuses == [b"200", b"200"],
+              f"statuses={statuses}")
     except Exception as e:
         check("Pipelined requests both answered", False, str(e))
 
@@ -839,6 +840,141 @@ def test_pipelined_flood_is_bounded():
           f"got {status_of(raw)}")
 
 
+def test_method_status_codes():
+    """The evaluation sheet penalises inaccurate status codes. RFC 7231
+    distinguishes a method the server does not implement (501) from a known
+    method that this route forbids (405, which must advertise Allow)."""
+    raw = raw_request(f"FOOBAR / HTTP/1.1\r\nHost: {HOST}\r\nConnection: close\r\n\r\n")
+    check("Unrecognised method returns 501 Not Implemented",
+          status_of(raw) == 501, f"got {status_of(raw)}")
+    check("501 response does not claim an Allow list",
+          header_of(raw, "Allow") is None, header_of(raw, "Allow"))
+
+    raw = raw_request(f"DELETE /restricted/index.html HTTP/1.1\r\nHost: {HOST}\r\n"
+                      f"Connection: close\r\n\r\n")
+    allow = header_of(raw, "Allow") or ""
+    check("Known but forbidden method returns 405",
+          status_of(raw) == 405, f"got {status_of(raw)}")
+    check(f"405 advertises Allow ({allow!r}) per RFC 7231 6.5.5",
+          "GET" in allow, f"Allow={allow!r}")
+
+    # The server must stay healthy after an unknown method.
+    raw = raw_request(f"GET / HTTP/1.1\r\nHost: {HOST}\r\nConnection: close\r\n\r\n")
+    check("Server healthy after an unknown method", status_of(raw) == 200)
+
+
+def test_virtual_hosts_share_a_port():
+    """Two server blocks on one interface:port must be dispatched by Host."""
+    raw_a = raw_request(f"GET / HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
+    raw_b = raw_request(f"GET / HTTP/1.1\r\nHost: not-configured.invalid\r\n"
+                        f"Connection: close\r\n\r\n")
+    check("Request with a configured Host is served", status_of(raw_a) == 200,
+          f"got {status_of(raw_a)}")
+    check("Request with an unknown Host falls back to the default server",
+          status_of(raw_b) == 200, f"got {status_of(raw_b)}")
+
+
+def test_cgi_env_path_info_and_script_name():
+    """RFC 3875 4.1.13: SCRIPT_NAME identifies the script and must not include
+    PATH_INFO. These exact values were changed, so assert them directly rather
+    than relying on method/query coverage."""
+    raw = raw_request(f"GET /cgi-bin/env.py/extra/path?k=v&n=2 HTTP/1.1\r\n"
+                      f"Host: {HOST}\r\nConnection: close\r\n\r\n", timeout=15)
+    check("CGI with PATH_INFO is executed", status_of(raw) == 200,
+          f"got {status_of(raw)}")
+
+    body = raw.split(b"\r\n\r\n", 1)[1] if b"\r\n\r\n" in raw else b""
+    expectations = [
+        ("SCRIPT_NAME", "/cgi-bin/env.py"),
+        ("PATH_INFO", "/extra/path"),
+        ("QUERY_STRING", "k=v&n=2"),
+        ("REQUEST_URI", "/cgi-bin/env.py/extra/path?k=v&n=2"),
+    ]
+    for var, expected in expectations:
+        # env.py renders "VAR ... value"; look for the pair on one line.
+        found = None
+        for line in body.decode(errors="replace").splitlines():
+            if var in line:
+                found = line
+                break
+        check(f"CGI env {var} == {expected}",
+              found is not None and expected in found,
+              f"line={found!r}")
+
+
+def test_pipelined_after_chunked_body():
+    """Regression: the chunked decoder consumed the whole read buffer, so a
+    request arriving in the same packet as the terminal chunk was swallowed."""
+    payload = (b"POST /uploads/regr_chunked.txt HTTP/1.1\r\nHost: " + HOST.encode() +
+               b"\r\nTransfer-Encoding: chunked\r\n\r\n"
+               b"5\r\nhello\r\n0\r\n\r\n"
+               b"GET / HTTP/1.1\r\nHost: " + HOST.encode() +
+               b"\r\nConnection: close\r\n\r\n")
+    raw = raw_request(payload, timeout=10)
+    # Count real status lines: the served HTML mentions "HTTP/1.1" in its text,
+    # so a plain substring count would over-report.
+    statuses = re.findall(rb"HTTP/1\.1 (\d{3}) ", raw)
+    check("Request pipelined behind a chunked body is still answered",
+          len(statuses) == 2,
+          f"got statuses {statuses}, expected 2 responses")
+
+    raw_request(f"DELETE /uploads/regr_chunked.txt HTTP/1.1\r\nHost: {HOST}\r\n"
+                f"Connection: close\r\n\r\n")
+
+
+def test_chunked_requires_crlf():
+    """RFC 7230 4.1: chunk framing uses CRLF. Accepting a bare LF would frame
+    the body differently from stricter proxies, which enables smuggling."""
+    payload = (b"POST /uploads/regr_lf.txt HTTP/1.1\r\nHost: " + HOST.encode() +
+               b"\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n"
+               b"5\r\nhello\n0\r\n\r\n")          # bare LF after the chunk data
+    raw = raw_request(payload, timeout=10)
+    check("Chunk terminated with a bare LF is rejected",
+          status_of(raw) == 400, f"got {status_of(raw)}")
+    check("No file was written from the malformed chunked body",
+          not os.path.exists("www/uploads/regr_lf.txt"))
+
+
+def test_cgi_cannot_forge_status_line():
+    """A control byte in the CGI Status reason phrase would be copied into our
+    status line, forging or truncating the response head."""
+    script = "www/cgi-bin/regr_status.py"
+    with open(script, "w") as f:
+        f.write("#!/usr/bin/env python3\nimport os\n"
+                'os.write(1, b"Status: 200 OK\\rX-Forged: injected\\r\\n"\n'
+                '            b"Content-Type: text/html\\r\\n\\r\\n<p>hi</p>")\n')
+    os.chmod(script, 0o755)
+    try:
+        raw = raw_request(f"GET /cgi-bin/regr_status.py HTTP/1.1\r\nHost: {HOST}\r\n"
+                          f"Connection: close\r\n\r\n", timeout=15)
+        head = raw.split(b"\r\n\r\n", 1)[0]
+        status_line = head.split(b"\r\n")[0]
+        check("CGI cannot inject a header via the Status reason phrase",
+              b"X-Forged" not in head, f"head={head[:120]!r}")
+        check("Status line contains no embedded CR",
+              b"\r" not in status_line, f"status_line={status_line!r}")
+    finally:
+        os.remove(script)
+
+
+def test_head_on_error_has_no_body():
+    """HEAD semantics apply to error responses too, not just successful ones."""
+    # An oversized Content-Length is answered from the parser via sendError().
+    raw = raw_request(f"HEAD /uploads/x.bin HTTP/1.1\r\nHost: {HOST}\r\n"
+                      f"Content-Length: {4 * 1024 * 1024 * 1024}\r\n"
+                      f"Connection: close\r\n\r\n")
+    body = raw.split(b"\r\n\r\n", 1)[1] if b"\r\n\r\n" in raw else b""
+    check("HEAD error response carries no payload", body == b"",
+          f"status={status_of(raw)} body={body[:60]!r}")
+
+    raw = raw_request(f"HEAD /no-such-file HTTP/1.1\r\nHost: {HOST}\r\n"
+                      f"Connection: close\r\n\r\n")
+    body = raw.split(b"\r\n\r\n", 1)[1] if b"\r\n\r\n" in raw else b""
+    check("HEAD 404 carries no payload but keeps its status",
+          status_of(raw) == 404 and body == b"",
+          f"status={status_of(raw)} body={body[:60]!r}")
+
+
 def test_request_timeout_408():
     """An incomplete request must be timed out rather than hang forever."""
     s = socket.create_connection((HOST, PORT), timeout=40)
@@ -857,8 +993,10 @@ def test_request_timeout_408():
             data += chunk
         elapsed = time.time() - start
         code = status_of(data)
-        check(f"Stalled request is terminated (~{elapsed:.0f}s, status={code})",
-              code == 408 or data == b"", f"resp={data[:80]!r}")
+        # A silent close would also "not hang", so requiring 408 specifically is
+        # what stops the response behaviour from regressing unnoticed.
+        check(f"Stalled request is answered with 408 (~{elapsed:.0f}s)",
+              code == 408, f"status={code} resp={data[:80]!r}")
         check("Stalled request did not hang indefinitely", elapsed < 35,
               f"{elapsed:.0f}s")
     finally:
@@ -890,6 +1028,13 @@ def main():
         test_cgi_cannot_inject_headers,
         test_autoindex_escapes_filenames,
         test_strict_request_syntax,
+        test_method_status_codes,
+        test_virtual_hosts_share_a_port,
+        test_cgi_env_path_info_and_script_name,
+        test_pipelined_after_chunked_body,
+        test_chunked_requires_crlf,
+        test_cgi_cannot_forge_status_line,
+        test_head_on_error_has_no_body,
         test_malformed_requests_do_not_crash,
         test_abrupt_disconnects,
         test_no_zombie_children,

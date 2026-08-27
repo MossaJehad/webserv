@@ -1,5 +1,6 @@
 #include "ConnectionManager.hpp"
 #include "Time.hpp"
+#include <unistd.h>
 
 ConnectionManager::ConnectionManager() {}
 
@@ -10,6 +11,11 @@ ConnectionManager::~ConnectionManager() {
     _connections.clear();
 }
 
+// Takes ownership of clientFd unconditionally. On success the returned
+// Connection owns it; on any failure the descriptor is closed here and no
+// half-registered state is left behind. That single-owner rule matters because
+// a descriptor released while still referenced would later be closed twice,
+// after the kernel had already handed the number to a new socket.
 Connection* ConnectionManager::createConnection(int clientFd,
                                                 const std::string& clientIp,
                                                 int clientPort,
@@ -25,10 +31,22 @@ Connection* ConnectionManager::createConnection(int clientFd,
         _connections.erase(stale);
     }
 
-    Connection* conn = new Connection(clientFd, clientIp, clientPort, servers, serverPort, registry);
-    _connections[clientFd] = conn;
-    registry.registerHandler(conn);
-    return conn;
+    Connection* conn = NULL;
+    try {
+        conn = new Connection(clientFd, clientIp, clientPort, servers, serverPort, registry);
+        _connections[clientFd] = conn;   // may throw while allocating a node
+        registry.registerHandler(conn);  // may throw while allocating a node
+        return conn;
+    } catch (...) {
+        registry.unregisterHandler(clientFd, conn);
+        _connections.erase(clientFd);
+        if (conn) {
+            delete conn;        // its destructor closes the descriptor
+        } else {
+            ::close(clientFd);  // nothing took ownership yet
+        }
+        throw;
+    }
 }
 
 void ConnectionManager::sweepDeadAndTimedOut(PollRegistry& registry) {

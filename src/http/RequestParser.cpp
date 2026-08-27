@@ -396,6 +396,10 @@ bool RequestParser::feed(const char* data, size_t len) {
         }
         if (_chunkedDecoder.isDone()) {
             _request.setBody(_chunkedDecoder.getDecodedBody());
+            // The whole buffer was handed to the decoder, so anything it did
+            // not consume is the start of the next pipelined request. Put it
+            // back where takeLeftover() will find it.
+            _buffer = _chunkedDecoder.takeLeftover();
             _state = PARSER_STATE_COMPLETE;
             return true;
         }

@@ -35,6 +35,14 @@ void ChunkedDecoder::setMaxBodySize(size_t size) {
     _maxBodySize = size;
 }
 
+std::string ChunkedDecoder::takeLeftover() {
+    // Bytes received after the terminal chunk belong to the next (pipelined)
+    // request. The caller owns them once the body is complete.
+    std::string leftover = _buffer;
+    _buffer.clear();
+    return leftover;
+}
+
 const std::string& ChunkedDecoder::getDecodedBody() const {
     return _decodedBody;
 }
@@ -108,24 +116,22 @@ bool ChunkedDecoder::feed(const char* data, size_t len) {
             if (_buffer.empty()) {
                 return true; // Need more data
             }
-            if (_buffer[0] == '\r') {
-                if (_buffer.size() < 2) {
-                    return true; // Need '\n'
-                }
-                if (_buffer[1] == '\n') {
-                    _buffer.erase(0, 2);
-                    _state = CHUNK_STATE_SIZE;
-                } else {
-                    _state = CHUNK_STATE_ERROR;
-                    return false;
-                }
-            } else if (_buffer[0] == '\n') {
-                _buffer.erase(0, 1);
-                _state = CHUNK_STATE_SIZE;
-            } else {
+            // RFC 7230 4.1 mandates CRLF between chunks. Tolerating a bare LF
+            // would frame the body differently from stricter intermediaries,
+            // which is exactly the differential request smuggling relies on.
+            if (_buffer[0] != '\r') {
                 _state = CHUNK_STATE_ERROR;
                 return false;
             }
+            if (_buffer.size() < 2) {
+                return true; // Need the '\n'
+            }
+            if (_buffer[1] != '\n') {
+                _state = CHUNK_STATE_ERROR;
+                return false;
+            }
+            _buffer.erase(0, 2);
+            _state = CHUNK_STATE_SIZE;
         } else if (_state == CHUNK_STATE_TRAILERS) {
             // Read until empty line "\r\n"
             if (_buffer.size() >= 2 && _buffer.substr(0, 2) == "\r\n") {
