@@ -18,6 +18,7 @@ enum ConnectionState {
     CONN_STATE_PROCESSING,
     CONN_STATE_WAIT_CGI,
     CONN_STATE_WRITING,
+    CONN_STATE_LINGER,
     CONN_STATE_CLOSED
 };
 
@@ -29,7 +30,9 @@ private:
     RequestParser _parser;
     ConnectionState _state;
     std::time_t _lastActivity;
-    int _timeoutSeconds;
+    int _idleTimeoutSeconds;    // idle keep-alive socket
+    int _requestTimeoutSeconds; // half-received request in flight
+    int _lingerTimeoutSeconds;  // draining a rejected upload before closing
 
     std::vector<ServerConfig> _servers;
     int _serverPort;
@@ -39,9 +42,16 @@ private:
     CgiProcess* _cgiProcess;
     PollRegistry* _registry;
     bool _keepAlive;
+    bool _lingerOnClose;
 
     void processRequest();
     void sendError(int statusCode, const ServerConfig* server = NULL);
+    void applyHeadSemantics(HttpResponse& response) const;
+    void queueResponse(HttpResponse& response);
+    void consume(const char* data, size_t len);
+    void drainWhileBusy();
+    void finishResponse();
+    void drainLinger();
 
 public:
     Connection(int clientFd,
@@ -59,6 +69,9 @@ public:
     virtual bool wantsWrite() const;
     virtual bool isDead() const;
     virtual void handleTimeout();
+
+    void checkCgi();
+    ConnectionState getState() const;
 
     std::time_t getLastActivity() const;
     bool isTimedOut(std::time_t now) const;

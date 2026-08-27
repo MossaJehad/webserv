@@ -20,6 +20,7 @@ private:
     std::string _buffer;
     std::string _decodedBody;
     size_t _maxBodySize;
+    bool _tooLarge;
 
 public:
     explicit ChunkedDecoder(size_t maxBodySize = 0);
@@ -29,7 +30,11 @@ public:
     bool feed(const char* data, size_t len);
     bool isDone() const;
     bool isError() const;
+    // Distinguishes "body exceeds client_max_body_size" (413) from a malformed
+    // chunked stream (400).
+    bool isTooLarge() const;
     const std::string& getDecodedBody() const;
+    void setMaxBodySize(size_t size);
     void reset();
 };
 

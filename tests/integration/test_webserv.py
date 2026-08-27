@@ -226,6 +226,110 @@ def run_tests():
     except Exception as e:
         test("Concurrent Requests", False, str(e))
 
+    # 16. Test CGI Environment Variables
+    try:
+        req = urllib.request.Request(f"{base_url}/cgi-bin/env.py?custom_param=webserv_42&val=awesome")
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            body = resp.read().decode()
+            test("CGI Environment Variables (RFC 3875)", resp.status == 200 and "REQUEST_METHOD" in body and "custom_param=webserv_42" in body)
+    except Exception as e:
+        test("CGI Environment Variables", False, str(e))
+
+    # 17. Test CGI Process Timeout (504 Gateway Timeout)
+    try:
+        req = urllib.request.Request(f"{base_url}/cgi-bin/timeout.py")
+        urllib.request.urlopen(req, timeout=15)
+        test("CGI Process Timeout (504 Gateway Timeout)", False, "Expected 504 HTTPError")
+    except urllib.error.HTTPError as e:
+        test("CGI Process Timeout (504 Gateway Timeout)", e.code == 504)
+    except Exception as e:
+        test("CGI Process Timeout (504 Gateway Timeout)", False, str(e))
+
+    # 18. Test HEAD Method
+    try:
+        conn = http.client.HTTPConnection(host, port, timeout=3)
+        conn.request("HEAD", "/")
+        resp = conn.getresponse()
+        body = resp.read()
+        test("HEAD / (Headers only, empty body)", resp.status == 200 and len(body) == 0 and "Content-Type" in resp.headers)
+        conn.close()
+    except Exception as e:
+        test("HEAD /", False, str(e))
+
+    # 19. Test HTTP/1.1 Missing Host Header (400 Bad Request)
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((host, port))
+        s.sendall(b"GET / HTTP/1.1\r\nConnection: close\r\n\r\n")
+        resp_data = b""
+        while True:
+            chunk = s.recv(1024)
+            if not chunk:
+                break
+            resp_data += chunk
+        s.close()
+        resp_str = resp_data.decode(errors="ignore")
+        test("HTTP/1.1 Missing Host Header (400 Bad Request)", "400" in resp_str)
+    except Exception as e:
+        test("HTTP/1.1 Missing Host Header", False, str(e))
+
+    # 20. Test HTTP/2.0 Not Supported (505 HTTP Version Not Supported)
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((host, port))
+        s.sendall(b"GET / HTTP/2.0\r\nHost: localhost\r\nConnection: close\r\n\r\n")
+        resp_data = b""
+        while True:
+            chunk = s.recv(1024)
+            if not chunk:
+                break
+            resp_data += chunk
+        s.close()
+        resp_str = resp_data.decode(errors="ignore")
+        test("HTTP/2.0 Unsupported (505 Version Not Supported)", "505" in resp_str)
+    except Exception as e:
+        test("HTTP/2.0 Unsupported", False, str(e))
+
+    # 21. Test Multipart/form-data Upload
+    try:
+        boundary = "---------------------------974767299852498929531610575"
+        multipart_body = (
+            f"--{boundary}\r\n"
+            f'Content-Disposition: form-data; name="file"; filename="multipart_test.txt"\r\n'
+            f"Content-Type: text/plain\r\n"
+            f"\r\n"
+            f"Multipart file payload content!\n"
+            f"\r\n"
+            f"--{boundary}--\r\n"
+        )
+        conn = http.client.HTTPConnection(host, port, timeout=3)
+        headers = {"Content-Type": f"multipart/form-data; boundary={boundary}"}
+        conn.request("POST", "/uploads", body=multipart_body, headers=headers)
+        resp = conn.getresponse()
+        resp.read()
+        test("POST Multipart Upload (201 Created)", resp.status == 201)
+        conn.close()
+
+        # Clean up uploaded file
+        conn2 = http.client.HTTPConnection(host, port, timeout=3)
+        conn2.request("DELETE", "/uploads/multipart_test.txt")
+        resp2 = conn2.getresponse()
+        resp2.read()
+        conn2.close()
+    except Exception as e:
+        test("POST Multipart Upload", False, str(e))
+
+    # 22. Test Custom Error Page
+    try:
+        req = urllib.request.Request(f"{base_url}/nonexistent_route_for_custom_404")
+        urllib.request.urlopen(req, timeout=3)
+        test("Custom Error Page (404)", False, "Expected 404 HTTPError")
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()
+        test("Custom Error Page (404)", e.code == 404 and "Resource Not Found" in body)
+    except Exception as e:
+        test("Custom Error Page", False, str(e))
+
     print("=" * 60)
     print(f"Summary: {passed} PASSED, {failed} FAILED (Total: {passed + failed})")
     print("=" * 60)

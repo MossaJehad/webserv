@@ -12,6 +12,23 @@ bool PollRegistry::registerHandler(IEventHandler* handler) {
     return true;
 }
 
+bool PollRegistry::unregisterHandler(int fd, const IEventHandler* expected) {
+    if (fd < 0) {
+        return false;
+    }
+    std::map<int, IEventHandler*>::iterator it = _handlers.find(fd);
+    if (it == _handlers.end()) {
+        return false;
+    }
+    if (expected && it->second != expected) {
+        // The descriptor has already been closed and handed to a new owner
+        // (e.g. a CGI pipe reusing a closed client's fd). Leave it alone.
+        return false;
+    }
+    _handlers.erase(it);
+    return true;
+}
+
 bool PollRegistry::unregisterHandler(int fd) {
     if (fd < 0) return false;
     return _handlers.erase(fd) > 0;
@@ -19,7 +36,7 @@ bool PollRegistry::unregisterHandler(int fd) {
 
 bool PollRegistry::unregisterHandler(IEventHandler* handler) {
     if (!handler) return false;
-    return unregisterHandler(handler->getFd());
+    return unregisterHandler(handler->getFd(), handler);
 }
 
 IEventHandler* PollRegistry::getHandler(int fd) const {

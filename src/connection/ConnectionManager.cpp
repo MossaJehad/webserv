@@ -16,6 +16,15 @@ Connection* ConnectionManager::createConnection(int clientFd,
                                                 const std::vector<ServerConfig>& servers,
                                                 int serverPort,
                                                 PollRegistry& registry) {
+    // The kernel reuses descriptor numbers, so make sure no stale connection is
+    // still parked on this fd before taking it over.
+    std::map<int, Connection*>::iterator stale = _connections.find(clientFd);
+    if (stale != _connections.end()) {
+        registry.unregisterHandler(clientFd, stale->second);
+        delete stale->second;
+        _connections.erase(stale);
+    }
+
     Connection* conn = new Connection(clientFd, clientIp, clientPort, servers, serverPort, registry);
     _connections[clientFd] = conn;
     registry.registerHandler(conn);
@@ -38,6 +47,10 @@ void ConnectionManager::sweepDeadAndTimedOut(PollRegistry& registry) {
             continue;
         }
 
+        if (conn->getState() == CONN_STATE_WAIT_CGI) {
+            conn->checkCgi();
+        }
+
         if (conn->isTimedOut(now)) {
             conn->handleTimeout();
             if (conn->isDead()) {
@@ -54,7 +67,9 @@ void ConnectionManager::sweepDeadAndTimedOut(PollRegistry& registry) {
 void ConnectionManager::closeConnection(int fd, PollRegistry& registry) {
     std::map<int, Connection*>::iterator it = _connections.find(fd);
     if (it != _connections.end()) {
-        registry.unregisterHandler(fd);
+        // Identity-checked: by now this connection's socket is closed and the
+        // number may already belong to a CGI pipe.
+        registry.unregisterHandler(fd, it->second);
         delete it->second;
         _connections.erase(it);
     }
@@ -62,7 +77,7 @@ void ConnectionManager::closeConnection(int fd, PollRegistry& registry) {
 
 void ConnectionManager::clear(PollRegistry& registry) {
     for (std::map<int, Connection*>::iterator it = _connections.begin(); it != _connections.end(); ++it) {
-        registry.unregisterHandler(it->first);
+        registry.unregisterHandler(it->first, it->second);
         delete it->second;
     }
     _connections.clear();

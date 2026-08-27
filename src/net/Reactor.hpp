@@ -12,6 +12,8 @@ private:
     ConnectionManager& _connManager;
     bool _running;
 
+    void dispatch(const std::vector<struct pollfd>& pollfds);
+
 public:
     Reactor(PollRegistry& registry, ConnectionManager& connManager);
     ~Reactor();

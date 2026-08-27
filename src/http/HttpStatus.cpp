@@ -23,6 +23,7 @@ std::string HttpStatus::getReasonPhrase(int code) {
         case STATUS_PAYLOAD_TOO_LARGE:     return "Payload Too Large";
         case STATUS_URI_TOO_LONG:          return "URI Too Long";
         case STATUS_UNSUPPORTED_MEDIA_TYPE: return "Unsupported Media Type";
+        case STATUS_HEADERS_TOO_LARGE:     return "Request Header Fields Too Large";
         case STATUS_INTERNAL_SERVER_ERROR: return "Internal Server Error";
         case STATUS_NOT_IMPLEMENTED:       return "Not Implemented";
         case STATUS_BAD_GATEWAY:           return "Bad Gateway";

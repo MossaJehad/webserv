@@ -2,6 +2,7 @@
 #include "Signal.hpp"
 #include "Logger.hpp"
 #include <cstdlib>
+#include <exception>
 #include <iostream>
 
 int main(int argc, char* argv[]) {
@@ -20,13 +21,22 @@ int main(int argc, char* argv[]) {
 
     Logger::info("Starting webserv...");
 
-    Webserv webserv;
-    if (!webserv.init(configPath)) {
-        Logger::error("Failed to initialize server");
+    // Last line of defence: the server must never terminate unexpectedly, not
+    // even on std::bad_alloc, so nothing is allowed to escape main().
+    try {
+        Webserv webserv;
+        if (!webserv.init(configPath)) {
+            Logger::error("Failed to initialize server");
+            return EXIT_FAILURE;
+        }
+        webserv.run();
+    } catch (const std::exception& e) {
+        Logger::error("Fatal: " + std::string(e.what()));
+        return EXIT_FAILURE;
+    } catch (...) {
+        Logger::error("Fatal: unknown error");
         return EXIT_FAILURE;
     }
-
-    webserv.run();
 
     Logger::info("webserv stopped gracefully");
     return EXIT_SUCCESS;

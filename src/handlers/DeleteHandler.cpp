@@ -12,14 +12,15 @@ HttpResponse DeleteHandler::handle(const RequestContext& ctx) {
         return ErrorResponse::build(404, ctx.getServer());
     }
 
+    // DELETE targets a single resource. Recursively wiping a directory tree is
+    // far beyond what the request asks for, so collections are refused
+    // outright: one request must never destroy unrelated resources.
     if (FileSystem::isDir(fsPath)) {
-        if (!FileSystem::deleteDirRecursive(fsPath)) {
-            return ErrorResponse::build(403, ctx.getServer());
-        }
-    } else {
-        if (!FileSystem::deleteFile(fsPath)) {
-            return ErrorResponse::build(403, ctx.getServer());
-        }
+        return ErrorResponse::build(403, ctx.getServer());
+    }
+
+    if (!FileSystem::deleteFile(fsPath)) {
+        return ErrorResponse::build(403, ctx.getServer());
     }
 
     HttpResponse response(200);

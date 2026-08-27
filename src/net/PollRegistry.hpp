@@ -16,6 +16,11 @@ public:
     ~PollRegistry();
 
     bool registerHandler(IEventHandler* handler);
+
+    // Descriptor numbers are recycled by the kernel, so a stale owner must
+    // never remove the entry of whoever inherited its fd. Pass the handler that
+    // is expected to be registered; the entry is dropped only if it matches.
+    bool unregisterHandler(int fd, const IEventHandler* expected);
     bool unregisterHandler(int fd);
     bool unregisterHandler(IEventHandler* handler);
     IEventHandler* getHandler(int fd) const;

@@ -1,9 +1,43 @@
 #include "CgiResponseParser.hpp"
+#include "ErrorResponse.hpp"
 #include "StringUtils.hpp"
 #include "HttpStatus.hpp"
 
+namespace {
+
+// A CGI script's output is untrusted input. Control characters in a header name
+// or value would be written straight into our response, letting a script inject
+// or truncate headers, so such fields are dropped.
+bool isSafeHeaderField(const std::string& name, const std::string& value) {
+    if (name.empty()) {
+        return false;
+    }
+    for (size_t i = 0; i < name.size(); ++i) {
+        unsigned char c = static_cast<unsigned char>(name[i]);
+        if (c < 0x21 || c == 0x7F || c == ':') {
+            return false;
+        }
+    }
+    for (size_t i = 0; i < value.size(); ++i) {
+        unsigned char c = static_cast<unsigned char>(value[i]);
+        if ((c < 0x20 && c != '\t') || c == 0x7F) {
+            return false;
+        }
+    }
+    return true;
+}
+
+} // namespace
+
 HttpResponse CgiResponseParser::parse(const std::string& rawOutput) {
     HttpResponse response(200);
+
+    // RFC 3875 6.2: a script response must carry at least a Content-Type or a
+    // Location. Producing nothing at all means the script failed, so report a
+    // gateway error instead of a misleading empty 200.
+    if (rawOutput.empty()) {
+        return ErrorResponse::build(STATUS_BAD_GATEWAY);
+    }
 
     size_t headerEnd = rawOutput.find("\r\n\r\n");
     size_t delimLen = 4;
@@ -37,6 +71,10 @@ HttpResponse CgiResponseParser::parse(const std::string& rawOutput) {
         std::string key = StringUtils::trim(line.substr(0, colon));
         std::string val = StringUtils::trim(line.substr(colon + 1));
         std::string lowerKey = StringUtils::toLower(key);
+
+        if (lowerKey != "status" && !isSafeHeaderField(key, val)) {
+            continue; // malformed field from the script: do not relay it
+        }
 
         if (lowerKey == "status") {
             hasStatus = true;

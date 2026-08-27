@@ -58,16 +58,25 @@ HttpResponse UploadHandler::handle(const RequestContext& ctx) {
     const LocationConfig& loc = ctx.getLocation();
     std::string uploadDir = loc.getUploadDir();
 
+    // Uploads are only accepted where the configuration provides a storage
+    // location. Without upload_dir a POST has nowhere legitimate to go, so it
+    // is refused rather than dropped into the served document root.
     if (uploadDir.empty()) {
-        uploadDir = loc.getRoot();
+        return ErrorResponse::build(405, ctx.getServer());
     }
 
-    // Ensure upload directory exists or try to resolve it
-    if (!FileSystem::exists(uploadDir)) {
+    if (!FileSystem::isDir(uploadDir)) {
         return ErrorResponse::build(500, ctx.getServer());
     }
 
     const HttpRequest& req = ctx.getRequest();
+
+    // Nothing to store: refuse rather than fabricating an empty file whose name
+    // the client never chose.
+    if (req.getBody().empty()) {
+        return ErrorResponse::build(400, ctx.getServer());
+    }
+
     std::string contentType = req.getHeaders().get("Content-Type");
     std::string filename;
     std::string fileContent;

@@ -39,13 +39,16 @@ HttpResponse AutoindexHandler::generateListing(const std::string& dirPath, const
     if (cleanUri.empty() || cleanUri[cleanUri.size() - 1] != '/') {
         cleanUri += "/";
     }
+    // Everything interpolated into the page below is untrusted (request path and
+    // on-disk file names), so it is escaped before rendering.
+    std::string safeUri = StringUtils::htmlEscape(cleanUri);
 
     std::ostringstream html;
     html << "<!DOCTYPE html>\n"
          << "<html>\n"
          << "<head>\n"
          << "  <meta charset=\"utf-8\">\n"
-         << "  <title>Index of " << cleanUri << "</title>\n"
+         << "  <title>Index of " << safeUri << "</title>\n"
          << "  <style>\n"
          << "    body { font-family: monospace; padding: 20px; background: #fff; color: #222; }\n"
          << "    h1 { border-bottom: 1px solid #ccc; padding-bottom: 10px; font-size: 20px; }\n"
@@ -59,7 +62,7 @@ HttpResponse AutoindexHandler::generateListing(const std::string& dirPath, const
          << "  </style>\n"
          << "</head>\n"
          << "<body>\n"
-         << "  <h1>Index of " << cleanUri << "</h1>\n"
+         << "  <h1>Index of " << safeUri << "</h1>\n"
          << "  <table>\n"
          << "    <tr><th>Name</th><th>Last Modified</th><th>Size</th></tr>\n";
 
@@ -71,13 +74,16 @@ HttpResponse AutoindexHandler::generateListing(const std::string& dirPath, const
         } else {
             parentUri = "/";
         }
-        html << "    <tr><td>📁 <a href=\"" << parentUri << "\">../</a></td><td>-</td><td>-</td></tr>\n";
+        html << "    <tr><td>📁 <a href=\"" << StringUtils::htmlEscape(parentUri)
+             << "\">../</a></td><td>-</td><td>-</td></tr>\n";
     }
 
     for (size_t i = 0; i < entries.size(); ++i) {
         const DirEntry& e = entries[i];
-        std::string link = cleanUri + e.name + (e.isDirectory ? "/" : "");
-        std::string displayName = e.name + (e.isDirectory ? "/" : "");
+        // The href needs percent-encoding (one path segment), the visible text
+        // needs HTML escaping. Doing only one of the two would be a hole.
+        std::string link = safeUri + StringUtils::urlEncode(e.name) + (e.isDirectory ? "/" : "");
+        std::string displayName = StringUtils::htmlEscape(e.name) + (e.isDirectory ? "/" : "");
         std::string icon = e.isDirectory ? "📁 " : "📄 ";
         std::string dateStr = Time::formatHttpDate(e.lastModified);
         std::string sizeStr = e.isDirectory ? "-" : formatSize(e.size);

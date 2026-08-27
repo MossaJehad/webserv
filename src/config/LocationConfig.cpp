@@ -60,7 +60,10 @@ void LocationConfig::addAllowedMethod(HttpMethod method) {
 
 bool LocationConfig::isMethodAllowed(HttpMethod method) const {
     if (_allowedMethods == 0) {
-        return method == METHOD_GET; // default to GET if none specified
+        return (method == METHOD_GET || method == METHOD_HEAD);
+    }
+    if (method == METHOD_HEAD) {
+        return (_allowedMethods & (METHOD_HEAD | METHOD_GET)) != 0;
     }
     return (_allowedMethods & method) != 0;
 }

@@ -3,6 +3,7 @@
 #include "FileSystem.hpp"
 #include <cstring>
 #include <cstdlib>
+#include <cctype>
 
 CgiEnvironment::CgiEnvironment() {}
 CgiEnvironment::~CgiEnvironment() {}
@@ -20,12 +21,22 @@ void CgiEnvironment::build(const RequestContext& ctx) {
 
     _envMap["REQUEST_METHOD"]    = req.getRawMethod().empty() ? "GET" : req.getRawMethod();
     _envMap["QUERY_STRING"]      = req.getQuery();
-    _envMap["SCRIPT_NAME"]       = req.getPath();
+    _envMap["REQUEST_URI"]       = req.getUri();
     _envMap["SCRIPT_FILENAME"]   = ctx.getScriptPath().empty() ? ctx.getResolvedFsPath() : ctx.getScriptPath();
 
-    if (!ctx.getPathInfo().empty()) {
-        _envMap["PATH_INFO"]       = ctx.getPathInfo();
-        _envMap["PATH_TRANSLATED"] = FileSystem::joinPaths(ctx.getLocation().getRoot(), ctx.getPathInfo());
+    // RFC 3875 4.1.13: SCRIPT_NAME identifies the script itself, so PATH_INFO
+    // must not be part of it.
+    std::string scriptName = req.getPath();
+    const std::string& pathInfo = ctx.getPathInfo();
+    if (!pathInfo.empty() && scriptName.size() > pathInfo.size() &&
+        scriptName.compare(scriptName.size() - pathInfo.size(), pathInfo.size(), pathInfo) == 0) {
+        scriptName = scriptName.substr(0, scriptName.size() - pathInfo.size());
+    }
+    _envMap["SCRIPT_NAME"] = scriptName;
+
+    if (!pathInfo.empty()) {
+        _envMap["PATH_INFO"]       = pathInfo;
+        _envMap["PATH_TRANSLATED"] = FileSystem::joinPaths(ctx.getLocation().getRoot(), pathInfo);
     }
 
     if (server) {

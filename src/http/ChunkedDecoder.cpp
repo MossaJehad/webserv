@@ -5,7 +5,8 @@ ChunkedDecoder::ChunkedDecoder(size_t maxBodySize)
     : _state(CHUNK_STATE_SIZE),
       _chunkSize(0),
       _chunkBytesRead(0),
-      _maxBodySize(maxBodySize) {}
+      _maxBodySize(maxBodySize),
+      _tooLarge(false) {}
 
 ChunkedDecoder::~ChunkedDecoder() {}
 
@@ -15,6 +16,7 @@ void ChunkedDecoder::reset() {
     _chunkBytesRead = 0;
     _buffer.clear();
     _decodedBody.clear();
+    _tooLarge = false;
 }
 
 bool ChunkedDecoder::isDone() const {
@@ -23,6 +25,14 @@ bool ChunkedDecoder::isDone() const {
 
 bool ChunkedDecoder::isError() const {
     return _state == CHUNK_STATE_ERROR;
+}
+
+bool ChunkedDecoder::isTooLarge() const {
+    return _tooLarge;
+}
+
+void ChunkedDecoder::setMaxBodySize(size_t size) {
+    _maxBodySize = size;
 }
 
 const std::string& ChunkedDecoder::getDecodedBody() const {
@@ -70,6 +80,7 @@ bool ChunkedDecoder::feed(const char* data, size_t len) {
                 _state = CHUNK_STATE_TRAILERS;
             } else {
                 if (_maxBodySize > 0 && (_decodedBody.size() + _chunkSize > _maxBodySize)) {
+                    _tooLarge = true;
                     _state = CHUNK_STATE_ERROR;
                     return false;
                 }
@@ -85,6 +96,7 @@ bool ChunkedDecoder::feed(const char* data, size_t len) {
             _buffer.erase(0, toCopy);
 
             if (_maxBodySize > 0 && _decodedBody.size() > _maxBodySize) {
+                _tooLarge = true;
                 _state = CHUNK_STATE_ERROR;
                 return false;
             }
@@ -93,12 +105,20 @@ bool ChunkedDecoder::feed(const char* data, size_t len) {
                 _state = CHUNK_STATE_CRLF;
             }
         } else if (_state == CHUNK_STATE_CRLF) {
-            if (_buffer.size() < 2) {
+            if (_buffer.empty()) {
                 return true; // Need more data
             }
-            if (_buffer[0] == '\r' && _buffer[1] == '\n') {
-                _buffer.erase(0, 2);
-                _state = CHUNK_STATE_SIZE;
+            if (_buffer[0] == '\r') {
+                if (_buffer.size() < 2) {
+                    return true; // Need '\n'
+                }
+                if (_buffer[1] == '\n') {
+                    _buffer.erase(0, 2);
+                    _state = CHUNK_STATE_SIZE;
+                } else {
+                    _state = CHUNK_STATE_ERROR;
+                    return false;
+                }
             } else if (_buffer[0] == '\n') {
                 _buffer.erase(0, 1);
                 _state = CHUNK_STATE_SIZE;

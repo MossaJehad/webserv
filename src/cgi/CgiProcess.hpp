@@ -65,6 +65,9 @@ private:
     CgiPipeWriteHandler* _writeHandler;
     PollRegistry* _registry;
 
+    void reapChild();
+    void closeStdin();
+
 public:
     explicit CgiProcess(const RequestContext& ctx, int timeoutSeconds = 10);
     ~CgiProcess();
