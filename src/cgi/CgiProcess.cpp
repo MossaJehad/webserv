@@ -254,7 +254,20 @@ void CgiProcess::handleStdoutRead() {
     ssize_t bytes = read(_stdoutFd, buffer, sizeof(buffer));
 
     if (bytes > 0) {
-        _outputBuffer.append(buffer, bytes);
+        // Buffering the script's output is the one allocation that scales with
+        // untrusted data here. Failing it must fail this request only, and it
+        // has to be handled where the process is reachable so the pipe is torn
+        // down instead of being polled again next cycle.
+        try {
+            _outputBuffer.append(buffer, bytes);
+        } catch (...) {
+            Logger::error("Cannot buffer CGI output; failing request");
+            cleanup();
+            _isDone = true;
+            _isError = true;
+            _errorCode = 502;
+            _response = ErrorResponse::build(502, _ctx.getServer());
+        }
         return;
     }
 

@@ -85,11 +85,22 @@ void Reactor::dispatch(const std::vector<struct pollfd>& pollfds) {
                 handler->handleWrite();
             }
         } catch (const std::exception& e) {
-            Logger::error("Dropping fd " + StringUtils::toString(fd) + ": " + e.what());
-            _connManager.closeConnection(fd, _registry);
+            recover(fd, e.what());
         } catch (...) {
-            Logger::error("Dropping fd " + StringUtils::toString(fd) + ": unknown error");
-            _connManager.closeConnection(fd, _registry);
+            recover(fd, "unknown error");
         }
+    }
+}
+
+// Backstop for a handler that threw. Client connections are torn down, because
+// their request is unrecoverable. Anything else (a listening socket, a CGI pipe
+// whose owner handles its own failures) is deliberately left registered:
+// dropping a listener here would permanently stop the server accepting on that
+// port, which is far worse than the failure being recovered from.
+void Reactor::recover(int fd, const std::string& reason) {
+    if (_connManager.closeConnection(fd, _registry)) {
+        Logger::error("Dropped client fd " + StringUtils::toString(fd) + ": " + reason);
+    } else {
+        Logger::error("Recovered from error on fd " + StringUtils::toString(fd) + ": " + reason);
     }
 }

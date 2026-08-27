@@ -13,6 +13,10 @@
 
 namespace {
 
+// Upper bound on bytes a peer may pipeline while a response is still being
+// produced. One more request head is legitimate; a stream of megabytes is not.
+const size_t MAX_PIPELINED_BYTES = 2 * MAX_HEADER_SECTION_BYTES;
+
 // Largest body any server on this listener would accept. Used as a parse-time
 // guard so an oversized upload is rejected before it is buffered in memory;
 // the exact per-location limit is still enforced by the Router.
@@ -240,6 +244,19 @@ void Connection::drainWhileBusy() {
     }
 
     _lastActivity = Time::now();
+
+    // A legitimately pipelined request is just a header block, so the stash is
+    // bounded. Without this a peer could stream for the whole CGI window and
+    // grow our memory without limit, since draining defeats TCP backpressure.
+    if (_inBuffer.size() + static_cast<size_t>(bytes) > MAX_PIPELINED_BYTES) {
+        Logger::warn("Peer streamed more than " +
+                     StringUtils::toString(MAX_PIPELINED_BYTES) +
+                     " bytes while CGI was running; dropping fd " +
+                     StringUtils::toString(getFd()));
+        close();
+        return;
+    }
+
     _inBuffer.append(buffer, static_cast<size_t>(bytes));
 }
 

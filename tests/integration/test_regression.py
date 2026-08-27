@@ -788,6 +788,57 @@ def test_multiple_cgi_types():
               f"got {status_of(raw)}")
 
 
+def test_pipelined_flood_is_bounded():
+    """Regression: while a CGI runs, the client socket is drained so a
+    disconnect is noticed. Draining defeats TCP backpressure, so the stash must
+    be capped or a peer could grow server memory without limit."""
+    pid = server_pid()
+    if not pid:
+        check("Server process located for the flood test", False)
+        return
+
+    def rss_kb():
+        try:
+            with open(f"/proc/{pid}/status") as f:
+                for line in f:
+                    if line.startswith("VmRSS:"):
+                        return int(line.split()[1])
+        except OSError:
+            pass
+        return -1
+
+    before = rss_kb()
+
+    def abuse(i):
+        try:
+            s = socket.create_connection((HOST, PORT), timeout=20)
+            s.sendall(f"GET /cgi-bin/timeout.py HTTP/1.1\r\nHost: {HOST}\r\n\r\n".encode())
+            time.sleep(0.3)
+            chunk = b"X" * 65536
+            for _ in range(200):      # ~13MB per client, far past the cap
+                s.sendall(chunk)
+            s.close()
+            return False              # never stopped: the cap did not hold
+        except Exception:
+            return True               # refused, which is the intended outcome
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as ex:
+        stopped = list(ex.map(abuse, range(5)))
+
+    time.sleep(1)
+    after = rss_kb()
+
+    check("Peers streaming during CGI are cut off", all(stopped),
+          f"{stopped.count(False)} of 5 streamed unchecked")
+    check(f"Memory stayed bounded under the flood (+{after - before} KB)",
+          before > 0 and after - before < 51200,
+          f"before={before}KB after={after}KB")
+
+    raw = raw_request(f"GET / HTTP/1.1\r\nHost: {HOST}\r\nConnection: close\r\n\r\n")
+    check("Server still serving after the flood", status_of(raw) == 200,
+          f"got {status_of(raw)}")
+
+
 def test_request_timeout_408():
     """An incomplete request must be timed out rather than hang forever."""
     s = socket.create_connection((HOST, PORT), timeout=40)
@@ -846,6 +897,7 @@ def main():
         test_cgi_stdin_eof,
         test_cgi_does_not_inherit_server_sockets,
         test_concurrent_cgi_never_starves,
+        test_pipelined_flood_is_bounded,
         test_multiple_cgi_types,
         test_keep_alive_and_pipelining,
         test_connection_close_honoured,

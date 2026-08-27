@@ -23,7 +23,8 @@ public:
                                 PollRegistry& registry);
 
     void sweepDeadAndTimedOut(PollRegistry& registry);
-    void closeConnection(int fd, PollRegistry& registry);
+    // Returns true when fd identified a client connection that was torn down.
+    bool closeConnection(int fd, PollRegistry& registry);
     void clear(PollRegistry& registry);
     size_t count() const;
 };

@@ -73,7 +73,7 @@ $(NAME): $(OBJS)
 	@printf "\n$(CLR_BOLD)$(CLR_MAGENTA)⚡ Linking executable: $(NAME)...$(CLR_RESET)\n"
 	@$(CXX) $(CXXFLAGS) $(OBJS) -o $(NAME)
 	@printf "$(CLR_BOLD)$(CLR_GREEN)╔════════════════════════════════════════════════════════════════════╗$(CLR_RESET)\n"
-	@printf "$(CLR_BOLD)$(CLR_GREEN)║  🚀  $(NAME) built successfully! Launch with: ./$(NAME)           ║$(CLR_RESET)\n"
+	@printf "$(CLR_BOLD)$(CLR_GREEN)║  🚀  $(NAME) built successfully! Launch with: ./$(NAME)            ║$(CLR_RESET)\n"
 	@printf "$(CLR_BOLD)$(CLR_GREEN)╚════════════════════════════════════════════════════════════════════╝$(CLR_RESET)\n"
 
 %.o: %.cpp

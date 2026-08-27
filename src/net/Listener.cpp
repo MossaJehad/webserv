@@ -130,12 +130,20 @@ void Listener::handleRead() {
         return;
     }
 
-    _connManager->createConnection(clientFd,
-                                   formatIpv4(clientAddr.sin_addr),
-                                   ntohs(clientAddr.sin_port),
-                                   _servers,
-                                   _port,
-                                   *_registry);
+    // We already own clientFd. If setting up the connection fails (allocation
+    // failure under memory pressure), the descriptor must be released here or
+    // it leaks for the lifetime of the process.
+    try {
+        _connManager->createConnection(clientFd,
+                                       formatIpv4(clientAddr.sin_addr),
+                                       ntohs(clientAddr.sin_port),
+                                       _servers,
+                                       _port,
+                                       *_registry);
+    } catch (...) {
+        Logger::error("Rejecting connection: failed to allocate connection state");
+        close(clientFd);
+    }
 }
 
 void Listener::handleWrite() {}

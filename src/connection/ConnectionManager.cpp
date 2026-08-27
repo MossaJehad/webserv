@@ -64,15 +64,17 @@ void ConnectionManager::sweepDeadAndTimedOut(PollRegistry& registry) {
     }
 }
 
-void ConnectionManager::closeConnection(int fd, PollRegistry& registry) {
+bool ConnectionManager::closeConnection(int fd, PollRegistry& registry) {
     std::map<int, Connection*>::iterator it = _connections.find(fd);
-    if (it != _connections.end()) {
-        // Identity-checked: by now this connection's socket is closed and the
-        // number may already belong to a CGI pipe.
-        registry.unregisterHandler(fd, it->second);
-        delete it->second;
-        _connections.erase(it);
+    if (it == _connections.end()) {
+        return false; // not a client connection (listener, CGI pipe, ...)
     }
+    // Identity-checked: by now this connection's socket is closed and the
+    // number may already belong to a CGI pipe.
+    registry.unregisterHandler(fd, it->second);
+    delete it->second;
+    _connections.erase(it);
+    return true;
 }
 
 void ConnectionManager::clear(PollRegistry& registry) {
