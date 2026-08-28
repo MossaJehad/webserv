@@ -152,10 +152,9 @@ bool CgiProcess::launch(PollRegistry& registry) {
         dup2(inPipe[0], STDIN_FILENO);
         dup2(outPipe[1], STDOUT_FILENO);
 
-        close(inPipe[0]);
-        close(inPipe[1]);
-        close(outPipe[0]);
-        close(outPipe[1]);
+        for (int fd = 3; fd < 1024; ++fd) {
+            close(fd);
+        }
 
         std::string scriptDir = FileSystem::getDirname(scriptPath);
         std::string scriptFile = FileSystem::getFilename(scriptPath);
