@@ -32,15 +32,13 @@ void Reactor::run() {
     while (_running && !Signal::isStopping()) {
         _registry.buildPollFds(pollfds);
 
-        if (pollfds.empty()) {
-            // No descriptor is currently interested in events: idle via poll()
-            // itself rather than a sleep call, keeping every wait inside poll().
-            poll(NULL, 0, POLL_TIMEOUT_MS);
-            _connManager.sweepDeadAndTimedOut(_registry);
-            continue;
-        }
+        // The single poll() every descriptor in the process goes through:
+        // listening sockets, client sockets and CGI pipes alike. An empty set
+        // is passed as NULL rather than &pollfds[0], which would be undefined
+        // on an empty vector; poll() then simply acts as the loop's wait.
+        struct pollfd* fds = pollfds.empty() ? NULL : &pollfds[0];
 
-        int ready = poll(&pollfds[0], pollfds.size(), POLL_TIMEOUT_MS);
+        int ready = poll(fds, pollfds.size(), POLL_TIMEOUT_MS);
 
         if (ready > 0) {
             dispatch(pollfds);

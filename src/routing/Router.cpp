@@ -127,15 +127,17 @@ RequestContext Router::route(const std::vector<ServerConfig>& servers,
         throw HttpError(STATUS_NOT_IMPLEMENTED, "Not Implemented");
     }
 
-    if (!location.isMethodAllowed(req.getMethod())) {
-        throw HttpError(STATUS_METHOD_NOT_ALLOWED, "Method Not Allowed",
-                        allowedMethodList(location));
-    }
-
-    // Client body size check
+    // Body size is checked before the method policy, as NGINX does: a payload
+    // the route would never accept is refused on its size alone, whatever the
+    // method turns out to be.
     size_t limit = location.hasBodySizeLimit() ? location.getClientMaxBodySize() : server.getClientMaxBodySize();
     if (limit > 0 && req.getBody().size() > limit) {
         throw HttpError(STATUS_PAYLOAD_TOO_LARGE, "Payload Too Large");
+    }
+
+    if (!location.isMethodAllowed(req.getMethod())) {
+        throw HttpError(STATUS_METHOD_NOT_ALLOWED, "Method Not Allowed",
+                        allowedMethodList(location));
     }
 
     // Resolve filesystem path
