@@ -28,8 +28,10 @@ HttpResponse ErrorResponse::build(int statusCode, const ServerConfig* server) {
         if (!customPagePath.empty()) {
             std::string fullPath = FileSystem::joinPaths(server->getRoot(), customPagePath);
             if (!FileSystem::readFile(fullPath, htmlBody)) {
-                // If not found in server root, check direct custom path
-                FileSystem::readFile(customPagePath, htmlBody);
+                std::string wwwPath = FileSystem::joinPaths("www", customPagePath);
+                if (!FileSystem::readFile(wwwPath, htmlBody)) {
+                    FileSystem::readFile(customPagePath, htmlBody);
+                }
             }
         }
     }

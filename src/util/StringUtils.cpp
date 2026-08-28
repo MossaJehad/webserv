@@ -187,6 +187,29 @@ std::string StringUtils::urlDecode(const std::string& s) {
     return res;
 }
 
+std::string StringUtils::htmlEscape(const std::string& s) {
+    std::string out;
+    out.reserve(s.size());
+    for (size_t i = 0; i < s.size(); ++i) {
+        unsigned char c = static_cast<unsigned char>(s[i]);
+        switch (c) {
+            case '&':  out += "&amp;";  break;
+            case '<':  out += "&lt;";   break;
+            case '>':  out += "&gt;";   break;
+            case '"':  out += "&quot;"; break;
+            case '\'': out += "&#39;";  break;
+            default:
+                // Drop control characters entirely: they carry no meaning in
+                // HTML output and would be echoed straight back to the client.
+                if (c >= 0x20 && c != 0x7F) {
+                    out += static_cast<char>(c);
+                }
+                break;
+        }
+    }
+    return out;
+}
+
 std::string StringUtils::urlEncode(const std::string& s) {
     std::ostringstream escaped;
     escaped.fill('0');

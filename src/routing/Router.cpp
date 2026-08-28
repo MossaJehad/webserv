@@ -4,6 +4,27 @@
 #include "StringUtils.hpp"
 #include "HttpStatus.hpp"
 
+namespace {
+
+// Comma-separated list of the methods this route permits, for the Allow header
+// that RFC 7231 6.5.5 requires on a 405 response.
+std::string allowedMethodList(const LocationConfig& location) {
+    const HttpMethod known[] = { METHOD_GET, METHOD_HEAD, METHOD_POST,
+                                 METHOD_DELETE, METHOD_PUT };
+    std::string list;
+    for (size_t i = 0; i < sizeof(known) / sizeof(known[0]); ++i) {
+        if (location.isMethodAllowed(known[i])) {
+            if (!list.empty()) {
+                list += ", ";
+            }
+            list += methodToString(known[i]);
+        }
+    }
+    return list;
+}
+
+} // namespace
+
 const ServerConfig& Router::matchServer(const std::vector<ServerConfig>& servers,
                                         const std::string& hostHeader,
                                         int serverPort) {
@@ -99,9 +120,16 @@ RequestContext Router::route(const std::vector<ServerConfig>& servers,
     const LocationConfig& location = matchLocation(server, req.getPath());
     ctx.setLocation(location);
 
-    // Method check
+    // RFC 7231 6.6.2 vs 6.5.5: a method the server does not implement at all is
+    // 501, while 405 means the method is understood but not permitted on this
+    // route (and then a valid response must advertise what is allowed).
+    if (req.getMethod() == METHOD_UNKNOWN) {
+        throw HttpError(STATUS_NOT_IMPLEMENTED, "Not Implemented");
+    }
+
     if (!location.isMethodAllowed(req.getMethod())) {
-        throw HttpError(STATUS_METHOD_NOT_ALLOWED, "Method Not Allowed");
+        throw HttpError(STATUS_METHOD_NOT_ALLOWED, "Method Not Allowed",
+                        allowedMethodList(location));
     }
 
     // Client body size check

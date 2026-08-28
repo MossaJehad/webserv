@@ -23,6 +23,9 @@ public:
     static size_t parseByteSize(const std::string& s);
     static std::string urlDecode(const std::string& s);
     static std::string urlEncode(const std::string& s);
+    // Escapes text that is interpolated into HTML output (e.g. file names from
+    // disk), so an attacker-chosen name cannot inject markup.
+    static std::string htmlEscape(const std::string& s);
 };
 
 #endif

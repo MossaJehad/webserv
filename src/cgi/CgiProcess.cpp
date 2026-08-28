@@ -194,6 +194,12 @@ bool CgiProcess::launch(PollRegistry& registry) {
     Socket::setNonBlocking(_stdinFd);
     Socket::setNonBlocking(_stdoutFd);
 
+    // Parent-side pipe ends must not leak into later CGI children: a child
+    // holding a copy of another request's stdin write end would keep that
+    // script from ever seeing EOF on its body.
+    Socket::setCloexec(_stdinFd);
+    Socket::setCloexec(_stdoutFd);
+
     _startTime = Time::now();
 
     if (_inputBody.empty()) {
@@ -210,15 +216,20 @@ bool CgiProcess::launch(PollRegistry& registry) {
     return true;
 }
 
+void CgiProcess::closeStdin() {
+    if (_stdinFd < 0) {
+        return;
+    }
+    if (_registry) {
+        _registry->unregisterHandler(_stdinFd, _writeHandler);
+    }
+    close(_stdinFd);
+    _stdinFd = -1;
+}
+
 void CgiProcess::handleStdinWrite() {
     if (_stdinFd < 0 || _inputWritten >= _inputBody.size()) {
-        if (_stdinFd >= 0) {
-            if (_registry && _writeHandler) {
-                _registry->unregisterHandler(_stdinFd);
-            }
-            close(_stdinFd);
-            _stdinFd = -1;
-        }
+        closeStdin(); // body fully delivered: the child must now see EOF
         return;
     }
 
@@ -227,51 +238,75 @@ void CgiProcess::handleStdinWrite() {
 
     if (bytes > 0) {
         _inputWritten += bytes;
+        if (_inputWritten >= _inputBody.size()) {
+            closeStdin(); // body delivered in full: let the child see EOF
+        }
+        return;
     }
 
-    if (_inputWritten >= _inputBody.size() || bytes <= 0) {
-        if (_registry && _writeHandler) {
-            _registry->unregisterHandler(_stdinFd);
-        }
-        close(_stdinFd);
-        _stdinFd = -1;
-    }
+    // bytes == 0 means no progress, bytes < 0 means the pipe is broken (the
+    // script exited without reading its body). Either way stop feeding it.
+    closeStdin();
 }
 
 void CgiProcess::handleStdoutRead() {
     if (_stdoutFd < 0) return;
 
-    char buffer[4096];
-    ssize_t bytes;
-    bool gotEof = false;
+    // Exactly one read per readiness notification: poll() is level-triggered,
+    // so any remaining output is reported again on the next cycle.
+    char buffer[65536];
+    ssize_t bytes = read(_stdoutFd, buffer, sizeof(buffer));
 
-    while ((bytes = read(_stdoutFd, buffer, sizeof(buffer))) > 0) {
-        _outputBuffer.append(buffer, bytes);
-    }
-
-    if (bytes == 0) {
-        gotEof = true;
-    } else if (bytes < 0) {
-        int status;
-        pid_t res = waitpid(_pid, &status, WNOHANG);
-        if (res > 0) {
-            gotEof = true;
+    if (bytes > 0) {
+        // Buffering the script's output is the one allocation that scales with
+        // untrusted data here. Failing it must fail this request only, and it
+        // has to be handled where the process is reachable so the pipe is torn
+        // down instead of being polled again next cycle.
+        try {
+            _outputBuffer.append(buffer, bytes);
+        } catch (...) {
+            Logger::error("Cannot buffer CGI output; failing request");
+            cleanup();
+            _isDone = true;
+            _isError = true;
+            _errorCode = 502;
+            _response = ErrorResponse::build(502, _ctx.getServer());
         }
+        return;
     }
 
-    if (gotEof) {
-        if (_registry && _readHandler) {
-            _registry->unregisterHandler(_stdoutFd);
-        }
-        close(_stdoutFd);
-        _stdoutFd = -1;
-
-        int status;
-        waitpid(_pid, &status, WNOHANG);
-
-        _response = CgiResponseParser::parse(_outputBuffer);
-        _isDone = true;
+    if (bytes < 0) {
+        return; // Not ready yet; wait for the next poll() event
     }
+
+    // bytes == 0: the child closed its stdout, which marks end of output.
+    if (_registry) {
+        _registry->unregisterHandler(_stdoutFd, _readHandler);
+    }
+    close(_stdoutFd);
+    _stdoutFd = -1;
+
+    reapChild();
+
+    _response = CgiResponseParser::parse(_outputBuffer);
+    _isDone = true;
+}
+
+// Collect the child unconditionally so no zombie can survive the request.
+// If it is still running after we have its full output, it is killed first;
+// SIGKILL cannot be blocked, so the blocking wait returns immediately.
+void CgiProcess::reapChild() {
+    if (_pid <= 0) {
+        return;
+    }
+
+    int status;
+    pid_t reaped = waitpid(_pid, &status, WNOHANG);
+    if (reaped == 0) {
+        kill(_pid, SIGKILL);
+        waitpid(_pid, &status, 0);
+    }
+    _pid = -1;
 }
 
 void CgiProcess::checkTimeout() {
@@ -279,12 +314,6 @@ void CgiProcess::checkTimeout() {
 
     if (_startTime > 0 && (Time::now() - _startTime) >= _timeoutSeconds) {
         Logger::warn("CGI process timed out, killing pid " + StringUtils::toString(_pid));
-        if (_pid > 0) {
-            kill(_pid, SIGKILL);
-            int status;
-            waitpid(_pid, &status, 0);
-        }
-
         cleanup();
         _isDone = true;
         _isError = true;
@@ -296,10 +325,10 @@ void CgiProcess::checkTimeout() {
 void CgiProcess::cleanup() {
     if (_registry) {
         if (_stdinFd >= 0) {
-            _registry->unregisterHandler(_stdinFd);
+            _registry->unregisterHandler(_stdinFd, _writeHandler);
         }
         if (_stdoutFd >= 0) {
-            _registry->unregisterHandler(_stdoutFd);
+            _registry->unregisterHandler(_stdoutFd, _readHandler);
         }
     }
 
@@ -319,11 +348,7 @@ void CgiProcess::cleanup() {
     delete _readHandler;
     _readHandler = NULL;
 
-    if (_pid > 0) {
-        int status;
-        waitpid(_pid, &status, WNOHANG);
-        _pid = -1;
-    }
+    reapChild();
 }
 
 bool CgiProcess::isDone() const {

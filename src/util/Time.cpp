@@ -1,14 +1,7 @@
 #include "Time.hpp"
-#include <sys/time.h>
 
 std::time_t Time::now() {
     return std::time(NULL);
-}
-
-unsigned long Time::nowMs() {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return (tv.tv_sec * 1000UL) + (tv.tv_usec / 1000UL);
 }
 
 std::string Time::formatHttpDate(std::time_t t) {

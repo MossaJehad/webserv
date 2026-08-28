@@ -7,7 +7,10 @@ RequestParser::RequestParser(size_t maxBodySize)
       _errorCode(0),
       _chunkedDecoder(maxBodySize),
       _maxBodySize(maxBodySize),
-      _bodyBytesRead(0) {}
+      _bodyBytesRead(0),
+      _headerBytes(0),
+      _headerCount(0),
+      _sawHost(false) {}
 
 RequestParser::~RequestParser() {}
 
@@ -18,6 +21,15 @@ void RequestParser::reset() {
     _request.clear();
     _chunkedDecoder.reset();
     _bodyBytesRead = 0;
+    _headerBytes = 0;
+    _headerCount = 0;
+    _sawHost = false;
+}
+
+std::string RequestParser::takeLeftover() {
+    std::string leftover = _buffer;
+    _buffer.clear();
+    return leftover;
 }
 
 bool RequestParser::isComplete() const {
@@ -32,6 +44,28 @@ int RequestParser::getErrorCode() const {
     return _errorCode;
 }
 
+bool RequestParser::hasPartialRequest() const {
+    if (_state == PARSER_STATE_COMPLETE || _state == PARSER_STATE_ERROR) {
+        return false;
+    }
+    // Past the request line means a message is definitely in flight; otherwise
+    // only buffered bytes prove the peer started sending one.
+    return _state != PARSER_STATE_REQUEST_LINE || !_buffer.empty();
+}
+
+bool RequestParser::wasBodyTruncated() const {
+    // True when the peer announced a body that we have not fully consumed, e.g.
+    // an upload rejected on its headers alone. Closing the socket in that state
+    // costs the client the response, so the caller should drain first.
+    if (_state == PARSER_STATE_COMPLETE) {
+        return false;
+    }
+    if (_request.isChunked()) {
+        return true;
+    }
+    return _bodyBytesRead < _request.getContentLength();
+}
+
 const HttpRequest& RequestParser::getRequest() const {
     return _request;
 }
@@ -42,6 +76,7 @@ HttpRequest& RequestParser::getRequest() {
 
 void RequestParser::setMaxBodySize(size_t size) {
     _maxBodySize = size;
+    _chunkedDecoder.setMaxBodySize(size);
 }
 
 void RequestParser::parseUri(const std::string& uri) {
@@ -69,8 +104,21 @@ void RequestParser::parseUri(const std::string& uri) {
 }
 
 void RequestParser::parseRequestLine(const std::string& line) {
+    // RFC 7230 3.2.6 / 3.5: control characters are not valid in a request line.
+    // Rejecting them here stops NUL bytes and stray CR from being smuggled into
+    // paths and reflected back in response headers.
+    for (size_t i = 0; i < line.size(); ++i) {
+        unsigned char c = static_cast<unsigned char>(line[i]);
+        if (c < 0x20 || c == 0x7F) {
+            _state = PARSER_STATE_ERROR;
+            _errorCode = STATUS_BAD_REQUEST;
+            return;
+        }
+    }
+
     std::vector<std::string> parts = StringUtils::splitWhitespace(line);
-    if (parts.size() < 3) {
+    // RFC 7230 3.1.1: the request line is exactly "method SP target SP version".
+    if (parts.size() != 3) {
         _state = PARSER_STATE_ERROR;
         _errorCode = STATUS_BAD_REQUEST;
         return;
@@ -133,6 +181,37 @@ void RequestParser::parseHeaderLine(const std::string& line) {
 
     std::string name = line.substr(0, colon);
     std::string value = line.substr(colon + 1);
+
+    // RFC 7230 3.2: a field name is a token and a field value may not contain
+    // control characters. Rejecting them here keeps hostile bytes out of the
+    // CGI environment and out of anything we echo back.
+    for (size_t i = 0; i < name.size(); ++i) {
+        unsigned char c = static_cast<unsigned char>(name[i]);
+        if (c <= 0x20 || c == 0x7F) {
+            _state = PARSER_STATE_ERROR;
+            _errorCode = STATUS_BAD_REQUEST;
+            return;
+        }
+    }
+    for (size_t i = 0; i < value.size(); ++i) {
+        unsigned char c = static_cast<unsigned char>(value[i]);
+        if ((c < 0x20 && c != '\t') || c == 0x7F) {
+            _state = PARSER_STATE_ERROR;
+            _errorCode = STATUS_BAD_REQUEST;
+            return;
+        }
+    }
+
+    // RFC 7230 5.4: more than one Host header must be answered with 400.
+    if (StringUtils::toLower(name) == "host") {
+        if (_sawHost) {
+            _state = PARSER_STATE_ERROR;
+            _errorCode = STATUS_BAD_REQUEST;
+            return;
+        }
+        _sawHost = true;
+    }
+
     _request.getHeaders().add(name, value);
 }
 
@@ -210,7 +289,7 @@ bool RequestParser::feed(const char* data, size_t len) {
         size_t crlf = _buffer.find("\r\n");
         size_t lf = _buffer.find('\n');
         if (crlf == std::string::npos && lf == std::string::npos) {
-            if (_buffer.size() > 8192) {
+            if (_buffer.size() > MAX_REQUEST_LINE_BYTES) {
                 _state = PARSER_STATE_ERROR;
                 _errorCode = STATUS_URI_TOO_LONG;
                 return false;
@@ -245,9 +324,9 @@ bool RequestParser::feed(const char* data, size_t len) {
             size_t crlf = _buffer.find("\r\n");
             size_t lf = _buffer.find('\n');
             if (crlf == std::string::npos && lf == std::string::npos) {
-                if (_buffer.size() > 16384) {
+                if (_buffer.size() > MAX_HEADER_SECTION_BYTES) {
                     _state = PARSER_STATE_ERROR;
-                    _errorCode = STATUS_BAD_REQUEST;
+                    _errorCode = STATUS_HEADERS_TOO_LARGE;
                     return false;
                 }
                 return true; // Need more data
@@ -266,11 +345,22 @@ bool RequestParser::feed(const char* data, size_t len) {
                 // End of headers
                 finalizeHeaders();
                 break;
-            } else {
-                parseHeaderLine(line);
-                if (_state == PARSER_STATE_ERROR) {
-                    return false;
-                }
+            }
+
+            // Bound the header section as a whole: without this a peer could
+            // stream an unlimited number of well-formed header lines and grow
+            // our memory without ever tripping the per-read buffer check.
+            _headerBytes += line.size() + 2;
+            ++_headerCount;
+            if (_headerBytes > MAX_HEADER_SECTION_BYTES || _headerCount > MAX_HEADER_COUNT) {
+                _state = PARSER_STATE_ERROR;
+                _errorCode = STATUS_HEADERS_TOO_LARGE;
+                return false;
+            }
+
+            parseHeaderLine(line);
+            if (_state == PARSER_STATE_ERROR) {
+                return false;
             }
         }
     }
@@ -299,12 +389,17 @@ bool RequestParser::feed(const char* data, size_t len) {
             _buffer.clear();
             if (!_chunkedDecoder.feed(toFeed.data(), toFeed.size())) {
                 _state = PARSER_STATE_ERROR;
-                _errorCode = STATUS_BAD_REQUEST;
+                _errorCode = _chunkedDecoder.isTooLarge() ? STATUS_PAYLOAD_TOO_LARGE
+                                                          : STATUS_BAD_REQUEST;
                 return false;
             }
         }
         if (_chunkedDecoder.isDone()) {
             _request.setBody(_chunkedDecoder.getDecodedBody());
+            // The whole buffer was handed to the decoder, so anything it did
+            // not consume is the start of the next pipelined request. Put it
+            // back where takeLeftover() will find it.
+            _buffer = _chunkedDecoder.takeLeftover();
             _state = PARSER_STATE_COMPLETE;
             return true;
         }

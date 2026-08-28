@@ -4,6 +4,7 @@
 #include "PollRegistry.hpp"
 #include "ConnectionManager.hpp"
 #include <vector>
+#include <string>
 #include <poll.h>
 
 class Reactor {
@@ -11,6 +12,9 @@ private:
     PollRegistry& _registry;
     ConnectionManager& _connManager;
     bool _running;
+
+    void dispatch(const std::vector<struct pollfd>& pollfds);
+    void recover(int fd, const std::string& reason);
 
 public:
     Reactor(PollRegistry& registry, ConnectionManager& connManager);

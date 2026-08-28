@@ -63,9 +63,5 @@ HttpResponse StaticFileHandler::handle(const RequestContext& ctx) {
         response.getHeaders().set("Last-Modified", Time::formatHttpDate(mtime));
     }
 
-    if (ctx.getRequest().getMethod() == METHOD_HEAD) {
-        response.setBody(""); // HEAD returns headers only
-    }
-
     return response;
 }

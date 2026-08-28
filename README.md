@@ -18,7 +18,10 @@ An HTTP/1.1 web server implemented in C++ 98 using non-blocking I/O multiplexing
   - Chunked transfer request body decoding (`Transfer-Encoding: chunked`).
   - Persistent connections with `Connection: keep-alive` and `close`.
   - Client request body limits (`client_max_body_size`) returning `413 Payload Too Large`.
-  - Custom and built-in error page templates (400, 403, 404, 405, 408, 413, 500, 502, 504).
+  - Custom and built-in error page templates (400, 403, 404, 405, 408, 413, 414, 431, 500, 502, 504).
+  - Bounded request line, header section and body sizes, with a lingering close so
+    a rejected upload can still read its `413` response.
+  - Separate idle keep-alive and in-flight request timeouts, so no request hangs indefinitely.
 - **Static File Serving & Routing**:
   - MIME type detection for standard web assets (HTML, CSS, JS, images, audio, video).
   - Configurable root directories and default index files (`index.html`).
@@ -28,13 +31,16 @@ An HTTP/1.1 web server implemented in C++ 98 using non-blocking I/O multiplexing
   - File deletion via `DELETE`.
 - **CGI Execution (RFC 3875)**:
   - Non-blocking pipe-based execution of scripts (.py, .sh, .php, etc.).
-  - Environment variable setup (`REQUEST_METHOD`, `QUERY_STRING`, `CONTENT_LENGTH`, `CONTENT_TYPE`, `PATH_INFO`, `HTTP_*`, `REDIRECT_STATUS`, etc.).
+  - Environment variable setup (`REQUEST_METHOD`, `QUERY_STRING`, `CONTENT_LENGTH`, `CONTENT_TYPE`, `PATH_INFO`, `SCRIPT_NAME`, `HTTP_*`, `REDIRECT_STATUS`, etc.).
   - Relative execution directory (`chdir`).
-  - Process timeout protection (`504 Gateway Timeout`) with cleanup of child processes.
+  - Chunked request bodies are un-chunked so the script sees `EOF` at the end of the body.
+  - Process timeout protection (`504 Gateway Timeout`), guaranteed child reaping
+    (no zombies), and `FD_CLOEXEC` so children never inherit server sockets.
 - **Bonus Features**:
   - Session and cookie management with `Set-Cookie` and `Cookie` headers.
   - Multi-port and virtual host configuration matching `server_name` and `Host` headers.
-  - Support for multiple CGI scripting languages.
+  - Multiple CGI languages dispatched purely by file extension: Python (`.py`),
+    Bash (`.sh`), Perl (`.pl`), and PHP (`.php`, when `php-cgi` is installed).
 
 ---
 
@@ -73,18 +79,43 @@ Run `webserv` with a path to a configuration file, or without arguments to use t
 ```
 
 ### 4. Running the Automated Test Suite
-To execute the automated integration test suite:
+Two suites are provided. Start the server first, then run them against it:
 
 ```bash
 # 1. Start webserv in background
 ./webserv config/default.conf &
 SERVER_PID=$!
 
-# 2. Run test suite
+# 2. Functional suite: methods, routing, CGI, uploads, status codes
 python3 tests/integration/test_webserv.py
 
-# 3. Terminate server
+# 3. Regression & robustness suite: RFC edge cases, malformed input,
+#    client disconnects, process/fd hygiene and stress tests
+python3 tests/integration/test_regression.py
+
+#    --slow also exercises the request-timeout path (~25s extra)
+#    --oom  also starts a second server under a hard memory cap to prove the
+#           process survives std::bad_alloc
+#    --all  runs everything
+python3 tests/integration/test_regression.py --all
+
+# 4. Terminate server
 kill $SERVER_PID
+```
+
+Browser check (the subject requires compatibility with a standard browser):
+
+```bash
+./webserv config/default.conf &
+xdg-open http://localhost:8080/     # or open the URL manually
+w3m -dump http://localhost:8080/    # text-mode browser, no GUI needed
+```
+
+To check for memory and descriptor leaks:
+
+```bash
+valgrind --leak-check=full --track-fds=yes ./webserv config/default.conf
+# run the suites above, then stop the server with Ctrl-C
 ```
 
 ---
@@ -134,7 +165,7 @@ server {
 
 ---
 
-## Resources & AI Usage
+## Resources
 
 ### References & Documentation
 - **RFC 7230**: *Hypertext Transfer Protocol (HTTP/1.1): Message Syntax and Routing*
