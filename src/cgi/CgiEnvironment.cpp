@@ -22,7 +22,17 @@ void CgiEnvironment::build(const RequestContext& ctx) {
     _envMap["REQUEST_METHOD"]    = req.getRawMethod().empty() ? "GET" : req.getRawMethod();
     _envMap["QUERY_STRING"]      = req.getQuery();
     _envMap["REQUEST_URI"]       = req.getUri();
-    _envMap["SCRIPT_FILENAME"]   = ctx.getScriptPath().empty() ? ctx.getResolvedFsPath() : ctx.getScriptPath();
+
+    // The child chdir()s into the script's own directory before exec, so a
+    // configuration-relative path (www/cgi-bin/x.php) no longer resolves there.
+    // Interpreters that locate the script through SCRIPT_FILENAME rather than
+    // argv (php-cgi) must be given a name that is valid in that directory.
+    std::string scriptPath = ctx.getScriptPath().empty() ? ctx.getResolvedFsPath() : ctx.getScriptPath();
+    if (!scriptPath.empty() && scriptPath[0] != '/') {
+        _envMap["SCRIPT_FILENAME"] = FileSystem::getFilename(scriptPath);
+    } else {
+        _envMap["SCRIPT_FILENAME"] = scriptPath;
+    }
 
     // RFC 3875 4.1.13: SCRIPT_NAME identifies the script itself, so PATH_INFO
     // must not be part of it.

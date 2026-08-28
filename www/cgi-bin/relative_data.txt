@@ -1,0 +1,3 @@
+This file lives next to the CGI scripts in www/cgi-bin.
+It can only be opened by the relative name "relative_data.txt" if the server
+changed the child's working directory to the script's directory before exec.

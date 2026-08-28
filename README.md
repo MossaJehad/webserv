@@ -73,10 +73,33 @@ Run `webserv` with a path to a configuration file, or without arguments to use t
 ./webserv
 
 # Using a custom configuration file
-./webserv config/default.conf
-./webserv config/multi_port.conf
-./webserv config/cgi.conf
+./webserv config/default.conf         # full feature demo on 127.0.0.1:8080
+./webserv config/multi_port.conf      # several sites on distinct interface:port pairs
+./webserv config/virtual_hosts.conf   # two sites sharing 127.0.0.1:8080, split by Host
+./webserv config/cgi.conf             # CGI-only server, one route per interpreter
 ```
+
+`config/default.conf` exposes one route per feature, so every requirement can be
+checked with a single running server:
+
+| Route        | Demonstrates                                                        |
+|--------------|---------------------------------------------------------------------|
+| `/`          | Static site, `index index.html`, autoindex, `POST` limited to 1 KB   |
+| `/alt`       | A different root directory with its own default file (`home.html`)   |
+| `/uploads`   | `POST` uploads and `DELETE`, directory listing, 10 MB body limit     |
+| `/cgi-bin`   | CGI by extension: `.py`, `.sh`, `.pl`, `.php`                        |
+| `/redirect`  | `return 301 /`                                                      |
+| `/google`    | `return 302` to an absolute URL                                     |
+| `/restricted`| `GET`-only route, returns `405` with an `Allow` header              |
+| `/noupload`  | `POST` accepted by the route but no `upload_dir`, so it is refused   |
+
+The CGI directory contains scripts for each case an evaluation looks at:
+`hello.py` / `hello.sh` / `hello.pl` / `hello.php` (one per interpreter),
+`env.py` (RFC 3875 variables), `post.py` and `echo_stdin.py` (request bodies),
+`session.py` (cookies and sessions), `relative.py` (proves the child runs in the
+script's own directory by opening a neighbouring file by relative path),
+`broken.py` (a script that fails before emitting headers → `502`) and
+`timeout.py` (an infinite loop → `504`).
 
 ### 4. Running the Automated Test Suite
 Two suites are provided. Start the server first, then run them against it:
@@ -116,6 +139,19 @@ To check for memory and descriptor leaks:
 ```bash
 valgrind --leak-check=full --track-fds=yes ./webserv config/default.conf
 # run the suites above, then stop the server with Ctrl-C
+```
+
+Stress test with `siege` (`brew install siege` / `apt install siege`). The `-b`
+flag removes the delay between requests, which is the worst case for the event
+loop:
+
+```bash
+./webserv config/default.conf &
+siege -b -c 25 -t 60S http://127.0.0.1:8080/empty.html   # availability must stay at 100%
+siege -b -c 30 -t 60S -f urls.txt                        # mixed static/CGI/upload workload
+
+# While siege runs, memory and descriptors must both stay flat:
+watch -n1 "grep VmRSS /proc/\$(pgrep -x webserv)/status; ls /proc/\$(pgrep -x webserv)/fd | wc -l"
 ```
 
 ---
@@ -176,7 +212,7 @@ server {
 
 ### AI Usage Disclosure
 Artificial Intelligence (LLM assistance) was utilized during the development of this project for:
-1. **Architecture & Modular Decomposition**: Planning strict separation of concerns into isolated modules (`core`, `config`, `net`, `connection`, `http`, `routing`, `handlers`, `cgi`, `util`) to meet file length (< 250 lines) and function length (< 75 lines) constraints.
+1. **Architecture & Modular Decomposition**: Planning strict separation of concerns into isolated modules (`core`, `config`, `net`, `connection`, `http`, `routing`, `handlers`, `cgi`, `util`), keeping each translation unit focused on a single responsibility.
 2. **Grammar & Parser Design**: Formulating the recursive-descent configuration tokenizer and parser for NGINX-like config files.
 3. **CGI Non-Blocking Pipeline**: Designing the asynchronous pipe event handler architecture to drive child stdin/stdout multiplexing entirely through the single `poll()` reactor without blocking the main event loop.
 4. **Automated Test Generation**: Creating the comprehensive Python integration test suite covering RFC status codes, chunked encoding, multipart uploads, cookie sessions, and edge-case handling.

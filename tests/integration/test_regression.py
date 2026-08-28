@@ -240,7 +240,9 @@ def test_path_traversal_blocked():
 
 
 def test_post_without_upload_dir_refused():
-    raw = raw_request(f"POST /injected.html HTTP/1.1\r\nHost: {HOST}\r\n"
+    # /noupload accepts POST but configures no upload_dir, so the request has
+    # nowhere legitimate to be stored and must not land in the document root.
+    raw = raw_request(f"POST /noupload/injected.html HTTP/1.1\r\nHost: {HOST}\r\n"
                       f"Content-Length: 5\r\nConnection: close\r\n\r\nBOOM!")
     check("POST to a location without upload_dir is refused",
           status_of(raw) in (403, 405), f"got {status_of(raw)}")
@@ -626,12 +628,15 @@ def test_empty_cgi_output_is_bad_gateway():
 
 
 def test_empty_post_body_refused():
+    # Only files appearing during this request matter: earlier uploads may
+    # legitimately have left auto-named files in the directory.
+    before = {f for f in os.listdir("www/uploads") if f.startswith("upload_")}
     raw = raw_request(f"POST /uploads/ HTTP/1.1\r\nHost: {HOST}\r\n"
                       f"Content-Length: 0\r\nConnection: close\r\n\r\n")
     check("POST with an empty body does not create a file",
           status_of(raw) == 400, f"got {status_of(raw)}")
-    stray = [f for f in os.listdir("www/uploads") if f.startswith("upload_")]
-    check("No auto-named placeholder file was created", not stray, f"stray={stray}")
+    stray = {f for f in os.listdir("www/uploads") if f.startswith("upload_")} - before
+    check("No auto-named placeholder file was created", not stray, f"stray={sorted(stray)}")
 
 
 def test_cgi_cannot_inject_headers():

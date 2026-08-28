@@ -143,7 +143,10 @@ bool FileSystem::listDirectory(const std::string& path, std::vector<DirEntry>& e
     struct dirent* entry;
     while ((entry = readdir(dir)) != NULL) {
         std::string name = entry->d_name;
-        if (name == ".") {
+        // "." and ".." are navigation entries, not content. The parent link is
+        // rendered separately by the caller, so listing ".." here would show it
+        // twice.
+        if (name == "." || name == "..") {
             continue;
         }
         std::string fullPath = joinPaths(path, name);
