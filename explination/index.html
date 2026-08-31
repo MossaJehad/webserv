@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en" class="dark scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>webserv — Comprehensive Architecture & Codebase Guide</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            border: "hsl(var(--border))",
+            input: "hsl(var(--input))",
+            ring: "hsl(var(--ring))",
+            background: "hsl(var(--background))",
+            foreground: "hsl(var(--foreground))",
+            primary: {
+              DEFAULT: "hsl(var(--primary))",
+              foreground: "hsl(var(--primary-foreground))",
+            },
+            secondary: {
+              DEFAULT: "hsl(var(--secondary))",
+              foreground: "hsl(var(--secondary-foreground))",
+            },
+            destructive: {
+              DEFAULT: "hsl(var(--destructive))",
+              foreground: "hsl(var(--destructive-foreground))",
+            },
+            muted: {
+              DEFAULT: "hsl(var(--muted))",
+              foreground: "hsl(var(--muted-foreground))",
+            },
+            accent: {
+              DEFAULT: "hsl(var(--accent))",
+              foreground: "hsl(var(--accent-foreground))",
+            },
+            popover: {
+              DEFAULT: "hsl(var(--popover))",
+              foreground: "hsl(var(--popover-foreground))",
+            },
+            card: {
+              DEFAULT: "hsl(var(--card))",
+              foreground: "hsl(var(--card-foreground))",
+            },
+          },
+          borderRadius: {
+            lg: "var(--radius)",
+            md: "calc(var(--radius) - 2px)",
+            sm: "calc(var(--radius) - 4px)",
+          },
+          fontFamily: {
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', '"Liberation Mono"', '"Courier New"', 'monospace'],
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root {
+      --background: 240 10% 3.9%;
+      --foreground: 0 0% 98%;
+      --card: 240 10% 4.9%;
+      --card-foreground: 0 0% 98%;
+      --popover: 240 10% 3.9%;
+      --popover-foreground: 0 0% 98%;
+      --primary: 0 0% 98%;
+      --primary-foreground: 240 5.9% 10%;
+      --secondary: 240 3.7% 15.9%;
+      --secondary-foreground: 0 0% 98%;
+      --muted: 240 3.7% 15.9%;
+      --muted-foreground: 240 5% 64.9%;
+      --accent: 240 3.7% 15.9%;
+      --accent-foreground: 0 0% 98%;
+      --destructive: 0 62.8% 30.6%;
+      --destructive-foreground: 0 0% 98%;
+      --border: 240 3.7% 15.9%;
+      --input: 240 3.7% 15.9%;
+      --ring: 240 4.9% 83.9%;
+      --radius: 0.5rem;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: hsl(240 10% 3.9%);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: hsl(240 3.7% 20%);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: hsl(240 3.7% 30%);
+    }
+
+    /* Code block styling */
+    pre {
+      position: relative;
+    }
+    .badge-get { background-color: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-post { background-color: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .badge-delete { background-color: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .badge-redirect { background-color: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+  </style>
+</head>
+<body class="bg-background text-foreground antialiased selection:bg-zinc-800 selection:text-white min-h-screen flex flex-col font-sans">
+
+  <!-- ==================== HEADER / NAV ==================== -->
+  <header class="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div class="container mx-auto max-w-7xl px-4 sm:px-6 flex h-14 items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="flex items-center justify-center h-8 w-8 rounded-lg bg-zinc-800 border border-border text-sky-400 font-mono font-bold text-sm shadow-sm">
+          ws
+        </div>
+        <div class="flex flex-col">
+          <span class="font-semibold text-sm tracking-tight flex items-center gap-2">
+            webserv <span class="text-xs px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700 font-mono">C++98 • RFC 7230</span>
+          </span>
+        </div>
+      </div>
+
+      <nav class="hidden md:flex items-center space-x-6 text-xs font-medium text-muted-foreground">
+        <a href="#overview" class="transition-colors hover:text-foreground">Overview</a>
+        <a href="#architecture" class="transition-colors hover:text-foreground">Reactor Architecture</a>
+        <a href="#connection" class="transition-colors hover:text-foreground">Connection Lifecycle</a>
+        <a href="#http-engine" class="transition-colors hover:text-foreground">HTTP Parser</a>
+        <a href="#cgi-pipeline" class="transition-colors hover:text-foreground">CGI Pipeline</a>
+        <a href="#codebase-map" class="transition-colors hover:text-foreground">Codebase Tour</a>
+        <a href="#evaluation-defense" class="transition-colors hover:text-foreground text-amber-400 font-semibold">42 Evaluation Q&A</a>
+      </nav>
+
+      <div class="flex items-center space-x-2">
+        <div class="relative hidden sm:block">
+          <input id="searchInput" type="text" placeholder="Filter topics (e.g. poll, CGI, linger)..." 
+                 class="h-8 w-60 rounded-md border border-input bg-zinc-900/50 px-3 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring">
+        </div>
+        <a href="https://github.com" target="_blank" rel="noreferrer" class="inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors border border-input bg-zinc-900 hover:bg-zinc-800 h-8 px-3 py-1 text-zinc-300">
+          <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+          GitHub Pages
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== HERO SECTION ==================== -->
+  <section class="border-b border-border bg-gradient-to-b from-zinc-900/40 to-background py-12 md:py-16">
+    <div class="container mx-auto max-w-7xl px-4 sm:px-6">
+      <div class="flex flex-col items-start gap-4 max-w-4xl">
+        <div class="inline-flex items-center gap-2 rounded-full border border-border bg-zinc-900/80 px-3 py-1 text-xs text-zinc-300">
+          <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>42 Curriculum Project &bull; Production-Grade HTTP/1.1 Engine</span>
+        </div>
+        <h1 class="text-3xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl text-white">
+          Under the Hood of <span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-400">webserv</span>
+        </h1>
+        <p class="text-base sm:text-lg text-muted-foreground leading-relaxed">
+          A definitive deep dive into building an asynchronous, single-threaded, non-blocking HTTP/1.1 web server in <strong class="text-zinc-200">C++98</strong>. Learn the Reactor pattern, Linux socket I/O multiplexing with <code class="text-sky-300 font-mono">poll()</code>, state-machine HTTP parsing, streaming chunked transfer encoding, and asynchronous CGI IPC pipelines.
+        </p>
+
+        <!-- Quick stats grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full pt-4">
+          <div class="rounded-lg border border-border bg-card p-3">
+            <div class="text-xs text-muted-foreground">Concurrency Model</div>
+            <div class="text-sm font-semibold text-white mt-1 flex items-center gap-1.5">
+              <span class="h-2 w-2 rounded-full bg-sky-400"></span> Single-Loop Reactor
+            </div>
+            <div class="text-[11px] text-zinc-500 mt-0.5">Non-blocking poll()</div>
+          </div>
+          <div class="rounded-lg border border-border bg-card p-3">
+            <div class="text-xs text-muted-foreground">Standards Compliance</div>
+            <div class="text-sm font-semibold text-white mt-1 flex items-center gap-1.5">
+              <span class="h-2 w-2 rounded-full bg-emerald-400"></span> RFC 7230 / 7231
+            </div>
+            <div class="text-[11px] text-zinc-500 mt-0.5">HTTP/1.1 & RFC 3875 (CGI)</div>
+          </div>
+          <div class="rounded-lg border border-border bg-card p-3">
+            <div class="text-xs text-muted-foreground">Architectural Style</div>
+            <div class="text-sm font-semibold text-white mt-1 flex items-center gap-1.5">
+              <span class="h-2 w-2 rounded-full bg-purple-400"></span> Layered Modular
+            </div>
+            <div class="text-[11px] text-zinc-500 mt-0.5">Strict Contract Separation</div>
+          </div>
+          <div class="rounded-lg border border-border bg-card p-3">
+            <div class="text-xs text-muted-foreground">Resilience & Leaks</div>
+            <div class="text-sm font-semibold text-white mt-1 flex items-center gap-1.5">
+              <span class="h-2 w-2 rounded-full bg-amber-400"></span> Zero Descriptors Lost
+            </div>
+            <div class="text-[11px] text-zinc-500 mt-0.5">Lingering close & FD_CLOEXEC</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== MAIN CONTENT CONTAINER ==================== -->
+  <div class="container mx-auto max-w-7xl px-4 sm:px-6 py-10 flex-1">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      
+      <!-- SIDEBAR TABLE OF CONTENTS (Desktop) -->
+      <aside class="hidden lg:block lg:col-span-3">
+        <div class="sticky top-20 rounded-lg border border-border bg-card p-4 space-y-4 shadow-sm text-xs">
+          <div class="font-semibold text-white uppercase tracking-wider text-[11px] text-zinc-400">Navigation Contents</div>
+          <nav class="space-y-1.5" id="tocNav">
+            <a href="#overview" class="block text-muted-foreground hover:text-white py-1 transition-colors">1. Executive Overview</a>
+            <a href="#why-reactor" class="block text-muted-foreground hover:text-white py-1 transition-colors">2. The Problem: C10K & Reactor Pattern</a>
+            <a href="#architecture" class="block text-muted-foreground hover:text-white py-1 transition-colors">3. System Architecture & Layers</a>
+            <a href="#reactor-loop" class="block text-muted-foreground hover:text-white py-1 transition-colors">4. The poll() Reactor Event Loop</a>
+            <a href="#connection" class="block text-muted-foreground hover:text-white py-1 transition-colors">5. Connection State Machine</a>
+            <a href="#http-engine" class="block text-muted-foreground hover:text-white py-1 transition-colors">6. HTTP/1.1 Streaming Parser</a>
+            <a href="#chunked-encoding" class="block text-muted-foreground hover:text-white py-1 transition-colors">7. Chunked Transfer Decoding</a>
+            <a href="#routing-handlers" class="block text-muted-foreground hover:text-white py-1 transition-colors">8. Virtual Hosts, Routing & Handlers</a>
+            <a href="#cgi-pipeline" class="block text-muted-foreground hover:text-white py-1 transition-colors">9. Asynchronous CGI Pipeline</a>
+            <a href="#safety-resilience" class="block text-muted-foreground hover:text-white py-1 transition-colors">10. Defense: Slowloris & Lingering Close</a>
+            <a href="#codebase-map" class="block text-muted-foreground hover:text-white py-1 transition-colors">11. Interactive Codebase Tour</a>
+            <a href="#evaluation-defense" class="block text-amber-400 font-medium hover:underline py-1 transition-colors">12. 42 Evaluation Defense Masterclass</a>
+            <a href="#github-pages" class="block text-sky-400 hover:underline py-1 transition-colors">13. GitHub Pages Deployment</a>
+          </nav>
+
+          <div class="pt-3 border-t border-border">
+            <div class="text-[11px] text-zinc-500 mb-2 font-mono">Quick Method Badges</div>
+            <div class="flex flex-wrap gap-1.5 font-mono text-[10px]">
+              <span class="badge-get px-2 py-0.5 rounded font-semibold">GET</span>
+              <span class="badge-post px-2 py-0.5 rounded font-semibold">POST</span>
+              <span class="badge-delete px-2 py-0.5 rounded font-semibold">DELETE</span>
+              <span class="badge-redirect px-2 py-0.5 rounded font-semibold">301/302</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- MAIN ARTICLE BODY -->
+      <main class="lg:col-span-9 space-y-16">
+
+        <!-- ================= SECTION 1: EXECUTIVE OVERVIEW ================= -->
+        <section id="overview" class="scroll-mt-20 space-y-4">
+          <div class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-sky-400">
+            <span>01 &bull; Fundamentals</span>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            What is webserv?
+          </h2>
+          <p class="text-zinc-300 leading-relaxed">
+            <strong class="text-white">webserv</strong> is an HTTP/1.1 compliant web server written from scratch in <span class="text-sky-300 font-semibold">C++98</span> as part of the rigorous 42 School curriculum. The objective of this project is to demystify how real-world industrial servers like NGINX, Apache, and Envoy function beneath the surface.
+          </p>
+          <div class="rounded-lg border border-border bg-card p-4 space-y-3">
+            <div class="text-sm font-semibold text-zinc-200">Core Engineering Constraints:</div>
+            <ul class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-zinc-400">
+              <li class="flex items-start gap-2">
+                <span class="text-emerald-400 font-bold">&check;</span>
+                <span><strong>No external libraries:</strong> No Boost, libevent, libuv, or modern C++11/17/20 STL features.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-emerald-400 font-bold">&check;</span>
+                <span><strong>Single-threaded:</strong> Zero POSIX threads (<code class="text-zinc-300">pthread_create</code> is forbidden).</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-emerald-400 font-bold">&check;</span>
+                <span><strong>Single poll() reactor:</strong> One central event loop drives all listening sockets, client streams, and CGI pipes simultaneously.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-emerald-400 font-bold">&check;</span>
+                <span><strong>Non-blocking I/O:</strong> Every descriptor must use <code class="text-zinc-300">O_NONBLOCK</code>. Never block the event loop on slow clients or network latency.</span>
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- ================= SECTION 2: WHY REACTOR & C10K ================= -->
+        <section id="why-reactor" class="scroll-mt-20 space-y-6">
+          <div class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-sky-400">
+            <span>02 &bull; Architectural Rationale</span>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            The C10K Challenge & The Reactor Pattern
+          </h2>
+          <p class="text-zinc-300 leading-relaxed">
+            In early web servers (like the original Apache prefork model), each incoming client connection was dispatched to a separate thread or spawned process. If 10,000 clients connected simultaneously, the operating system kernel wasted excessive CPU time switching thread contexts, allocating massive stack memory per thread, and exhausting descriptor tables. This is famously known as the <strong>C10K problem</strong>.
+          </p>
+
+          <!-- Comparison Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-destructive/30 bg-destructive/5 p-5 space-y-3">
+              <div class="flex items-center gap-2 text-sm font-semibold text-rose-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                Thread-Per-Client (Anti-pattern for webserv)
+              </div>
+              <p class="text-xs text-zinc-400 leading-relaxed">
+                A thread blocks on <code class="text-zinc-300">read()</code> until the client sends data. If a malicious client sends 1 byte every 10 seconds (Slowloris attack), the thread remains frozen, consuming stack memory and blocking server capacity.
+              </p>
+            </div>
+
+            <div class="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-5 space-y-3">
+              <div class="flex items-center gap-2 text-sm font-semibold text-emerald-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Single-Loop Non-Blocking Reactor (webserv)
+              </div>
+              <p class="text-xs text-zinc-400 leading-relaxed">
+                The server sets all sockets to non-blocking with <code class="text-zinc-300">fcntl()</code>. A single call to <code class="text-sky-300 font-mono">poll()</code> sleeps until the operating system notifies that at least one file descriptor is ready for reading or writing. No threads, no context switching overhead, virtually zero idle CPU usage.
+              </p>
+            </div>
+          </div>
+
+          <!-- Architecture Visual Card -->
+          <div class="rounded-lg border border-border bg-card overflow-hidden">
+            <div class="border-b border-border bg-zinc-900/50 px-4 py-2.5 flex items-center justify-between text-xs">
+              <span class="font-mono text-zinc-400">The Reactor Multiplexing Loop</span>
+              <span class="text-zinc-500 font-mono">src/net/Reactor.cpp</span>
+            </div>
+            <div class="p-4 font-mono text-xs text-zinc-300 overflow-x-auto leading-relaxed bg-zinc-950">
+<pre><code>+-------------------------------------------------------------------------+
+|                           THE REACTOR (poll)                            |
++-------------------------------------------------------------------------+
+       |                                |                            |
+       v                                v                            v
++--------------+               +------------------+         +---------------+
+|  Listeners   |               | Client Sockets   |         |   CGI Pipes   |
+| (port 8080,  |               | (HTTP keep-alive |         | (script stdin |
+|  port 8081)  |               |  request/resp)   |         |  child stdout)|
++--------------+               +------------------+         +---------------+
+       |                                |                            |
+       | [POLLIN: new connection]       | [POLLIN / POLLOUT]         | [POLLIN / POLLOUT]
+       v                                v                            v
+Listener::handleRead()        Connection::handleRead()     CgiPipeRead/Write Handler
+accept() -> new Connection    Parser -> Route -> Write     Feed stdin / read stdout</code></pre>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= SECTION 3: SYSTEM ARCHITECTURE & LAYERS ================= -->
+        <section id="architecture" class="scroll-mt-20 space-y-6">
+          <div class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-sky-400">
+            <span>03 &bull; System Decomposition</span>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            Layered Modular Architecture & Frozen Contracts
+          </h2>
+          <p class="text-zinc-300 leading-relaxed">
+            Many 42 students fail webserv because they write a monolithic 3,000-line socket loop where HTTP parsing, CGI execution, and socket reading are tangled together in nested conditions. In this codebase, strict <strong>separation of concerns</strong> and <strong>unidirectional dependencies</strong> are enforced:
+          </p>
+
+          <div class="space-y-3">
+            <div class="rounded-lg border border-border bg-card p-4">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-mono font-bold text-sky-400">1. Core Layer (src/core/)</span>
+                <span class="text-[11px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">Bootstrapping & Signals</span>
+              </div>
+              <p class="text-xs text-zinc-400 mt-2">
+                Contains <code class="text-zinc-200">Webserv</code> and <code class="text-zinc-200">Signal</code>. Parses the configuration file, sets up signal handlers (<code class="text-zinc-300">SIGINT</code>, <code class="text-zinc-300">SIGTERM</code>, <code class="text-zinc-300">SIGPIPE</code> ignored), instantiates listeners, and starts the reactor.
+              </p>
+            </div>
+
+            <div class="rounded-lg border border-border bg-card p-4">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-mono font-bold text-emerald-400">2. Network Layer (src/net/)</span>
+                <span class="text-[11px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">Sockets & Event Dispatch</span>
+              </div>
+              <p class="text-xs text-zinc-400 mt-2">
+                <code class="text-zinc-200">Reactor</code>, <code class="text-zinc-200">PollRegistry</code>, <code class="text-zinc-200">Listener</code>, and <code class="text-zinc-200">Socket</code>. Has <em>zero knowledge of HTTP</em>. It only knows about file descriptors, readiness flags (<code class="text-zinc-300">POLLIN</code>, <code class="text-zinc-300">POLLOUT</code>), and the polymorphic <code class="text-zinc-200">IEventHandler</code> interface.
+              </p>
+            </div>
+
+            <div class="rounded-lg border border-border bg-card p-4">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-mono font-bold text-amber-400">3. Connection Layer (src/connection/)</span>
+                <span class="text-[11px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">Client State Machine</span>
+              </div>
+              <p class="text-xs text-zinc-400 mt-2">
+                <code class="text-zinc-200">Connection</code> and <code class="text-zinc-200">ConnectionManager</code>. Implements <code class="text-zinc-200">IEventHandler</code>. Manages the lifecycle of a client socket: buffering inbound and outbound bytes, advancing states, detecting timeouts, and managing lingering close.
+              </p>
+            </div>
+
+            <div class="rounded-lg border border-border bg-card p-4">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-mono font-bold text-indigo-400">4. HTTP & Routing Layer (src/http/ & src/routing/)</span>
+                <span class="text-[11px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">Parsing & VHost Matching</span>
+              </div>
+              <p class="text-xs text-zinc-400 mt-2">
+                <code class="text-zinc-200">RequestParser</code>, <code class="text-zinc-200">ChunkedDecoder</code>, <code class="text-zinc-200">Router</code>, and <code class="text-zinc-200">ResponseSerializer</code>. Pure data manipulation without touching socket file descriptors! Makes the parsing engine 100% testable via unit tests.
+              </p>
+            </div>
+
+            <div class="rounded-lg border border-border bg-card p-4">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-mono font-bold text-rose-400">5. Handlers & CGI Layer (src/handlers/ & src/cgi/)</span>
+                <span class="text-[11px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">Response Generation</span>
+              </div>
+              <p class="text-xs text-zinc-400 mt-2">
+                <code class="text-zinc-200">StaticFileHandler</code>, <code class="text-zinc-200">UploadHandler</code>, <code class="text-zinc-200">DeleteHandler</code>, <code class="text-zinc-200">AutoindexHandler</code>, and <code class="text-zinc-200">CgiProcess</code>. Generates responses based on the request method and URI.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= SECTION 4: THE REACTOR EVENT LOOP ================= -->
+        <section id="reactor-loop" class="scroll-mt-20 space-y-6">
+          <div class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-sky-400">
+            <span>04 &bull; Event Dispatching</span>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            The poll() Reactor Event Loop Explained
+          </h2>
+          <p class="text-zinc-300 leading-relaxed">
+            The heart of webserv is <code class="text-sky-300 font-mono">Reactor::run()</code> in <code class="text-zinc-300">src/net/Reactor.cpp</code>. Here is how the loop executes every 100 milliseconds:
+          </p>
+
+          <div class="rounded-lg border border-border bg-card overflow-hidden">
+            <div class="border-b border-border bg-zinc-900/50 px-4 py-2.5 flex items-center justify-between text-xs">
+              <span class="font-mono text-zinc-400">Core Loop snippet from src/net/Reactor.cpp</span>
+              <button onclick="copyCode(this)" class="text-xs text-zinc-400 hover:text-white flex items-center gap-1 font-mono">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                Copy
+              </button>
+            </div>
+            <pre class="p-4 font-mono text-xs text-zinc-300 overflow-x-auto bg-zinc-950 leading-relaxed"><code>void Reactor::run() {
+    _running = true;
+    std::vector&lt;struct pollfd&gt; pollfds;
+
+    while (_running &amp;&amp; !Signal::isStopping()) {
+        // 1. Collect pollfds from all registered handlers (listeners, clients, pipes)
+        _registry.buildPollFds(pollfds);
+
+        struct pollfd* fds = pollfds.empty() ? NULL : &amp;pollfds[0];
+
+        // 2. Sleep in kernel until at least one fd is ready (or 100ms timeout)
+        int ready = poll(fds, pollfds.size(), POLL_TIMEOUT_MS);
+
+        if (ready &gt; 0) {
+            dispatch(pollfds);
+        }
+
+        // 3. Periodic sweep: disconnect clients that stalled or exceeded keep-alive
+        _connManager.sweepDeadAndTimedOut(_registry);
+    }
+}</code></pre>
+          </div>
+
+          <!-- Deep Dive Callout -->
+          <div class="rounded-lg border border-sky-500/30 bg-sky-500/5 p-4 text-xs text-zinc-300 space-y-2">
+            <div class="font-semibold text-sky-400 flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              Critical Rule: Read &amp; Write in the Same Loop Cycle
+            </div>
+            <p>
+              In <code class="text-zinc-100">Reactor::dispatch</code>, notice how if a file descriptor has both <code class="text-zinc-100 font-mono">POLLIN</code> and <code class="text-zinc-100 font-mono">POLLOUT</code> ready, the reactor handles <code class="text-sky-300">handleRead()</code> first, re-verifies that the descriptor wasn't closed, and then immediately runs <code class="text-sky-300">handleWrite()</code> in the <em>same iteration</em>. This minimizes client latency by a full poll tick!
+            </p>
+          </div>
+        </section>
+
+        <!-- ================= SECTION 5: CONNECTION STATE MACHINE ================= -->
+        <section id="connection" class="scroll-mt-20 space-y-6">
+          <div class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-sky-400">
+            <span>05 &bull; State Machine</span>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            Client Connection Lifecycle &amp; State Transitions
+          </h2>
+          <p class="text-zinc-300 leading-relaxed">
+            Each TCP client connection is modeled as a formal <strong>Finite State Machine (FSM)</strong> inside <code class="text-zinc-300">src/connection/Connection.hpp</code>. Sockets never block on I/O. Instead, they transition between explicit states:
+          </p>
+
+          <!-- State Table -->
+          <div class="rounded-lg border border-border overflow-hidden">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-zinc-900/80 text-zinc-400 font-mono border-b border-border">
+                <tr>
+                  <th class="p-3">State</th>
+                  <th class="p-3">wantsRead</th>
+                  <th class="p-3">wantsWrite</th>
+                  <th class="p-3">Description & Next Transition</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-border font-mono text-zinc-300">
+                <tr class="hover:bg-zinc-900/40">
+                  <td class="p-3 text-sky-400 font-bold">CONN_STATE_READING</td>
+                  <td class="p-3 text-emerald-400">true</td>
+                  <td class="p-3 text-zinc-500">false</td>
+                  <td class="p-3 font-sans text-xs">Receiving bytes into <code class="font-mono text-zinc-200">IoBuffer</code>. Feeds incremental parser. Transitions to <code class="font-mono text-sky-300">PROCESSING</code> once the request is complete.</td>
+                </tr>
+                <tr class="hover:bg-zinc-900/40">
+                  <td class="p-3 text-amber-400 font-bold">CONN_STATE_PROCESSING</td>
+                  <td class="p-3 text-zinc-500">false</td>
+                  <td class="p-3 text-zinc-500">false</td>
+                  <td class="p-3 font-sans text-xs">Matches virtual host, executes routing, and invokes handler. If CGI is selected &rarr; transitions to <code class="font-mono text-purple-300">WAIT_CGI</code>; otherwise generates response &rarr; transitions to <code class="font-mono text-emerald-300">WRITING</code>.</td>
+                </tr>
+                <tr class="hover:bg-zinc-900/40">
+                  <td class="p-3 text-purple-400 font-bold">CONN_STATE_WAIT_CGI</td>
+                  <td class="p-3 text-emerald-400">true (drain)</td>
+                  <td class="p-3 text-zinc-500">false</td>
+                  <td class="p-3 font-sans text-xs">Asynchronous child script is executing. The client socket remains monitored for disconnects or pipelined requests (<code class="font-mono text-zinc-200">drainWhileBusy</code>). Once CGI finishes &rarr; transitions to <code class="font-mono text-emerald-300">WRITING</code>.</td>
+                </tr>
+                <tr class="hover:bg-zinc-900/40">
+                  <td class="p-3 text-emerald-400 font-bold">CONN_STATE_WRITING</td>
+                  <td class="p-3 text-zinc-500">false</td>
+                  <td class="p-3 text-emerald-400">true</td>
+                  <td class="p-3 font-sans text-xs">Flushing serialized response buffer via <code class="font-mono text-zinc-200">send()</code>. Once buffer is empty: if keep-alive &rarr; resets to <code class="font-mono text-sky-300">READING</code>; if rejected upload &rarr; <code class="font-mono text-rose-300">LINGER</code>; otherwise <code class="font-mono text-zinc-400">CLOSED</code>.</td>
+                </tr>
+                <tr class="hover:bg-zinc-900/40">
+                  <td class="p-3 text-rose-400 font-bold">CONN_STATE_LINGER</td>
+                  <td class="p-3 text-emerald-400">true</td>
+                  <td class="p-3 text-zinc-500">false</td>
+                  <td class="p-3 font-sans text-xs">Draining remaining unread upload body before closing socket. Prevents TCP reset (<code class="font-mono text-zinc-200">ECONNRESET</code>) from destroying the error response in client browser.</td>
+                </tr>
+                <tr class="hover:bg-zinc-900/40">
+                  <td class="p-3 text-zinc-500 font-bold">CONN_STATE_CLOSED</td>
+                  <td class="p-3 text-zinc-500">false</td>
+                  <td class="p-3 text-zinc-500">false</td>
+                  <td class="p-3 font-sans text-xs">Socket is closed via RAII destructor, unregistered from poll, and deallocated by <code class="font-mono text-zinc-200">ConnectionManager</code>.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ================= SECTION 6: HTTP PARSER ================= -->
+        <section id="http-engine" class="scroll-mt-20 space-y-6">
+          <div class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-sky-400">
+            <span>06 &bull; Protocol Parsing</span>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            HTTP/1.1 Incremental Streaming Parser
+          </h2>
+          <p class="text-zinc-300 leading-relaxed">
+            In non-blocking networking, <code class="text-sky-300 font-mono">recv()</code> rarely returns an entire HTTP request at once. It may return 10 bytes, 1500 bytes (one MTU packet), or a fragment of a header line. The parser in <code class="text-zinc-300">src/http/RequestParser.cpp</code> operates as an <strong>incremental stream parser</strong>:
+          </p>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-border bg-card p-4 space-y-2">
+              <div class="text-sm font-semibold text-white flex items-center gap-2">
+                <span class="text-sky-400 font-mono">1.</span> Request Line Parsing
+              </div>
+              <p class="text-xs text-zinc-400 leading-relaxed">
+                Scans for <code class="text-zinc-300 font-mono">\r\n</code>. Splits exactly into 3 parts: <code class="text-zinc-200">METHOD SP URI SP VERSION</code>. RFC 7230 prohibits control characters (&lt; 0x20 or 0x7F). Bounded to 8,192 bytes; exceeding this returns <strong class="text-rose-400 font-mono">414 URI Too Long</strong>.
+              </p>
+            </div>
+
+            <div class="rounded-lg border border-border bg-card p-4 space-y-2">
+              <div class="text-sm font-semibold text-white flex items-center gap-2">
+                <span class="text-emerald-400 font-mono">2.</span> Header Section Bounds
+              </div>
+              <p class="text-xs text-zinc-400 leading-relaxed">
+                Extracts key-value pairs delimited by colons. Enforces case-insensitive matching. Bounded to 32,768 bytes total and max 100 headers to prevent memory exhaustion (returning <strong class="text-rose-400 font-mono">431 Request Header Fields Too Large</strong>). RFC 7230 5.4 mandates rejecting duplicate <code class="text-zinc-200">Host</code> headers with 400.
+              </p>
+            </div>
+
+            <div class="rounded-lg border border-border bg-card p-4 space-y-2">
+              <div class="text-sm font-semibold text-white flex items-center gap-2">
+                <span class="text-amber-400 font-mono">3.</span> Body with Content-Length
+              </div>
+              <p class="text-xs text-zinc-400 leading-relaxed">
+                When <code class="text-zinc-200 font-mono">Content-Length: N</code> is present, reads exactly N bytes. If <code class="text-zinc-200">N &gt; client_max_body_size</code>, parsing aborts immediately with <strong class="text-rose-400 font-mono">413 Payload Too Large</strong> <em>before</em> allocating body memory!
+              </p>
+            </div>
+
+            <div class="rounded-lg border border-border bg-card p-4 space-y-2">
+              <div class="text-sm font-semibold text-white flex items-center gap-2">
+                <span class="text-purple-400 font-mono">4.</span> Leftover Preservation
+              </div>
+              <p class="text-xs text-zinc-400 leading-relaxed">
+                In HTTP/1.1 pipelining, a client may send the start of a second request within the same TCP packet. The parser saves leftovers via <code class="text-sky-300 font-mono">takeLeftover()</code> and restores them when the next request is processed.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= SECTION 7: CHUNKED TRANSFER ENCODING ================= -->
+        <section id="chunked-encoding" class="scroll-mt-20 space-y-6">
+          <div class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-sky-400">
+            <span>07 &bull; RFC 7230 Chunked Decoding</span>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            Chunked Transfer Encoding (Transfer-Encoding: chunked)
+          </h2>
+          <p class="text-zinc-300 leading-relaxed">
+            Chunked transfer encoding allows a client to stream dynamic data of unknown total size. The payload is sent in consecutive chunks, where each chunk begins with its size in hexadecimal, followed by <code class="text-zinc-200 font-mono">\r\n</code>, the chunk data, and another <code class="text-zinc-200 font-mono">\r\n</code>. The stream terminates with a zero-length chunk <code class="text-zinc-200 font-mono">0\r\n\r\n</code>.
+          </p>
+
+          <div class="rounded-lg border border-border bg-card overflow-hidden">
+            <div class="border-b border-border bg-zinc-900/50 px-4 py-2.5 flex items-center justify-between text-xs">
+              <span class="font-mono text-zinc-400">RFC 7230 Chunked Body Structure</span>
+              <span class="font-mono text-zinc-500">src/http/ChunkedDecoder.cpp</span>
+            </div>
+            <pre class="p-4 font-mono text-xs text-zinc-300 overflow-x-auto bg-zinc-950 leading-relaxed"><code>4\r\n        &lt;-- Hexadecimal chunk size (4 bytes)
+Wiki\r\n    &lt;-- 4 bytes of data + CRLF
+6\r\n        &lt;-- Hexadecimal chunk size (6 bytes)
+pedia \r\n  &lt;-- 6 bytes of data + CRLF
+E\r\n        &lt;-- Hexadecimal chunk size (14 bytes in hex: 'E')
+ in \r\n\r\nchunks.\r\n
+0\r\n        &lt;-- Terminal chunk size 0
+\r\n        &lt;-- Final CRLF delimiter (or trailers)</code></pre>
+          </div>
+
+          <div class="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-xs text-zinc-300 space-y-2">
+            <div class="font-semibold text-amber-400 flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              Request Smuggling Defense
+            </div>
+            <p>
+              In <code class="text-zinc-100">ChunkedDecoder::feed</code>, we enforce strict <code class="text-zinc-100 font-mono">\r\n</code> between chunks. If a client sends a bare <code class="text-zinc-100 font-mono">\n</code> without <code class="text-zinc-100 font-mono">\r</code>, it is rejected immediately. Accepting loose line endings allows attackers to desynchronize reverse proxies and cache servers (HTTP Request Smuggling)!
+            </p>
+          </div>
+        </section>
+
+        <!-- ================= SECTION 8: ROUTING & HANDLERS ================= -->
+        <section id="routing-handlers" class="scroll-mt-20 space-y-6">
+          <div class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-sky-400">
+            <span>08 &bull; Request Dispatching</span>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            Virtual Hosts, Longest Prefix Routing &amp; Handlers
+          </h2>
+          <p class="text-zinc-300 leading-relaxed">
+            Once a request is parsed into an <code class="text-sky-300 font-mono">HttpRequest</code>, the <code class="text-sky-300 font-mono">Router</code> maps it to a specific virtual server and location:
+          </p>
+
+          <div class="space-y-4">
+            <div class="rounded-lg border border-border bg-card p-4 space-y-3">
+              <h3 class="text-sm font-semibold text-white">1. Virtual Host Matching (Server Block)</h3>
+              <p class="text-xs text-zinc-400 leading-relaxed">
+                The router first filters servers listening on the exact connected TCP port. It then matches the client's <code class="text-zinc-200 font-mono">Host: example.com</code> header against the configured <code class="text-zinc-200 font-mono">server_name</code> directives. If no <code class="text-zinc-200 font-mono">server_name</code> matches, it falls back to the <em>default virtual host</em> (the first server defined on that port).
+              </p>
+            </div>
+
+            <div class="rounded-lg border border-border bg-card p-4 space-y-3">
+              <h3 class="text-sm font-semibold text-white">2. Longest Prefix Location Match</h3>
+              <p class="text-xs text-zinc-400 leading-relaxed">
+                If the server configuration has <code class="text-zinc-200 font-mono">location /</code> and <code class="text-zinc-200 font-mono">location /uploads</code>, a request to <code class="text-zinc-200 font-mono">/uploads/file.png</code> will match <code class="text-zinc-200 font-mono">/uploads</code> because it is the <strong>longest prefix match</strong> on path boundaries.
+              </p>
+            </div>
+
+            <div class="rounded-lg border border-border bg-card p-4 space-y-3">
+              <h3 class="text-sm font-semibold text-white">3. Handler Factory Pattern</h3>
+              <p class="text-xs text-zinc-400 leading-relaxed mb-3">
+                Decoupled polymorphic handlers inherit from <code class="text-zinc-200 font-mono">IRequestHandler</code>:
+              </p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <div class="p-2.5 rounded bg-zinc-900/60 border border-border">
+                  <div class="font-mono font-bold text-emerald-400">StaticFileHandler</div>
+                  <div class="text-zinc-400 mt-1">Serves static assets with MIME types, checks directory index (<code class="text-zinc-200">index.html</code>), or generates directory autoindex.</div>
+                </div>
+                <div class="p-2.5 rounded bg-zinc-900/60 border border-border">
+                  <div class="font-mono font-bold text-sky-400">UploadHandler</div>
+                  <div class="text-zinc-400 mt-1">Parses <code class="text-zinc-200">multipart/form-data</code> and raw uploads, sanitizes filenames to prevent path traversal, returns <code class="text-zinc-200">201 Created</code>.</div>
+                </div>
+                <div class="p-2.5 rounded bg-zinc-900/60 border border-border">
+                  <div class="font-mono font-bold text-rose-400">DeleteHandler</div>
+                  <div class="text-zinc-400 mt-1">Deletes files safely via <code class="text-zinc-200">unlink()</code>. Prevents directory deletion without proper permissions. Returns <code class="text-zinc-200">200 OK</code> or <code class="text-zinc-200">204 No Content</code>.</div>
+                </div>
+                <div class="p-2.5 rounded bg-zinc-900/60 border border-border">
+                  <div class="font-mono font-bold text-amber-400">RedirectHandler</div>
+                  <div class="text-zinc-400 mt-1">Handles <code class="text-zinc-200">return 301 /</code> or <code class="text-zinc-200">return 302 http://...</code> with an automatic <code class="text-zinc-200">Location</code> header.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= SECTION 9: CGI PIPELINE ================= -->
+        <section id="cgi-pipeline" class="scroll-mt-20 space-y-6">
+          <div class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-sky-400">
+            <span>09 &bull; RFC 3875 Common Gateway Interface</span>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            Asynchronous Non-Blocking CGI Pipeline
+          </h2>
+          <p class="text-zinc-300 leading-relaxed">
+            Executing external scripts (Python, Bash, PHP) is the most challenging requirement of webserv. A naive <code class="text-zinc-200 font-mono">fork()</code> + blocking <code class="text-zinc-200 font-mono">waitpid()</code> freezes the entire web server, meaning all other connected users cannot even load static pages!
+          </p>
+
+          <!-- CGI Architecture Diagram -->
+          <div class="rounded-lg border border-border bg-card p-4 space-y-4">
+            <div class="text-sm font-semibold text-zinc-200">How webserv executes CGI without blocking:</div>
+            <div class="p-4 font-mono text-xs text-zinc-300 overflow-x-auto leading-relaxed bg-zinc-950 rounded border border-border">
+<pre><code>Webserv Reactor Loop (Single Process)
+    |
+    |-- 1. pipe(inPipe) &amp; pipe(outPipe)
+    |-- 2. fcntl(..., O_NONBLOCK) on parent pipe ends
+    |-- 3. fork() child process
+    |       |-- Child: dup2() inPipe[0] -&gt; STDIN
+    |       |-- Child: dup2() outPipe[1] -&gt; STDOUT
+    |       |-- Child: close all inherited server fds (FD_CLOEXEC)
+    |       |-- Child: chdir to script directory
+    |       |-- Child: execve(interpreter, argv, envp)
+    |
+    |-- 4. Parent registers inPipe[1] (writeHandler) &amp; outPipe[0] (readHandler) in PollRegistry
+    |-- 5. Connection enters CONN_STATE_WAIT_CGI
+    |
+Reactor poll() notifications:
+    |-- outPipe[0] is POLLIN  --&gt; CgiProcess::handleStdoutRead() (accumulates script output)
+    |-- inPipe[1]  is POLLOUT --&gt; CgiProcess::handleStdinWrite() (streams POST request body)
+    |-- Child closes stdout   --&gt; CgiResponseParser parses headers + body --&gt; response sent
+    |-- Script exceeds 10s    --&gt; kill(pid, SIGKILL) + waitpid() --&gt; sends 504 Gateway Timeout</code></pre>
+            </div>
+          </div>
+
+          <!-- CGI Key Features -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div class="rounded-lg border border-border bg-card p-3 space-y-1">
+              <div class="font-semibold text-emerald-400 font-mono">Zero Zombie Procs</div>
+              <p class="text-zinc-400 leading-relaxed">
+                In <code class="text-zinc-200 font-mono">CgiProcess::reapChild</code>, every child is reaped via non-blocking <code class="text-zinc-200 font-mono">waitpid(_pid, &amp;status, WNOHANG)</code>. If still running upon timeout, it is killed with <code class="text-zinc-200 font-mono">SIGKILL</code> and harvested immediately.
+              </p>
+            </div>
+            <div class="rounded-lg border border-border bg-card p-3 space-y-1">
+              <div class="font-semibold text-sky-400 font-mono">FD_CLOEXEC Hygiene</div>
+              <p class="text-zinc-400 leading-relaxed">
+                All listening sockets and parent pipes have <code class="text-zinc-200 font-mono">FD_CLOEXEC</code> set. If a CGI script runs indefinitely, it will never prevent webserv from binding or unbinding its listening ports.
+              </p>
+            </div>
+            <div class="rounded-lg border border-border bg-card p-3 space-y-1">
+              <div class="font-semibold text-purple-400 font-mono">Body Un-chunking</div>
+              <p class="text-zinc-400 leading-relaxed">
+                CGI scripts (like Python) expect clean input with an accurate <code class="text-zinc-200 font-mono">CONTENT_LENGTH</code>. The server decodes chunked bodies first, feeding raw bytes directly so scripts see <code class="text-zinc-200 font-mono">EOF</code> at the end.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= SECTION 10: DEFENSE & RESILIENCE ================= -->
+        <section id="safety-resilience" class="scroll-mt-20 space-y-6">
+          <div class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-sky-400">
+            <span>10 &bull; Reliability Engineering</span>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            Defensive Design: Slowloris, Timeouts &amp; Lingering Close
+          </h2>
+          <p class="text-zinc-300 leading-relaxed">
+            During 42 evaluations, evaluators will deliberately send malformed requests, open idle connections, cut internet cables, and upload massive files to test if your server crashes, leaks memory, or freezes. Here is how our server handles these scenarios:
+          </p>
+
+          <div class="space-y-4">
+            <!-- Slowloris card -->
+            <div class="rounded-lg border border-border bg-card p-4 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-semibold text-rose-400">1. Slowloris Defense (Dual Timeouts)</span>
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">60s Idle / 20s In-Flight</span>
+              </div>
+              <p class="text-xs text-zinc-400 leading-relaxed">
+                An idle keep-alive socket waiting for a new request has a generous 60-second timeout. However, if a client starts sending a request line or headers but stalls mid-transmission, the connection enters a strict <strong>20-second in-flight timeout</strong>. If the client fails to complete the request within 20 seconds, the server sends a <strong class="text-zinc-200 font-mono">408 Request Timeout</strong> and closes the socket!
+              </p>
+            </div>
+
+            <!-- Lingering Close card -->
+            <div class="rounded-lg border border-border bg-card p-4 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-semibold text-amber-400">2. Lingering Close (Rejected Uploads)</span>
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">CONN_STATE_LINGER</span>
+              </div>
+              <p class="text-xs text-zinc-400 leading-relaxed">
+                When a client attempts to upload a 50MB file to a route that allows only 1MB, the server immediately sends <strong class="text-zinc-200 font-mono">413 Payload Too Large</strong>. If the server closes the TCP connection immediately while the client is still pushing data, the kernel will send a TCP <code class="text-rose-400 font-mono">RST</code> packet. The client's browser will see "Connection Reset" and discard the 413 error page! To prevent this, our server transitions to <code class="text-zinc-200 font-mono">CONN_STATE_LINGER</code>, reading and discarding incoming data until the client finishes or a 5-second linger timeout expires.
+              </p>
+            </div>
+
+            <!-- OOM Survival card -->
+            <div class="rounded-lg border border-border bg-card p-4 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-semibold text-emerald-400">3. Out-Of-Memory (OOM) Protection</span>
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">std::bad_alloc Trap</span>
+              </div>
+              <p class="text-xs text-zinc-400 leading-relaxed">
+                In <code class="text-zinc-200 font-mono">src/main.cpp</code> and <code class="text-zinc-200 font-mono">src/net/Reactor.cpp</code>, top-level <code class="text-zinc-200 font-mono">try / catch</code> blocks trap memory allocation failures. If an excessively large payload causes <code class="text-zinc-200 font-mono">std::bad_alloc</code>, only that offending client connection is dropped. The server itself <strong>never crashes</strong> and continues accepting other clients!
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= SECTION 11: CODEBASE MAP ================= -->
+        <section id="codebase-map" class="scroll-mt-20 space-y-6">
+          <div class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-sky-400">
+            <span>11 &bull; Source Code Tour</span>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            Interactive Codebase Directory &amp; Class Catalog
+          </h2>
+          <p class="text-zinc-300 leading-relaxed">
+            Browse through each source module in the project to inspect file responsibilities, design patterns, and exact line counts:
+          </p>
+
+          <!-- Interactive Code Tab Viewer -->
+          <div class="rounded-lg border border-border bg-card overflow-hidden">
+            <div class="flex border-b border-border bg-zinc-900/60 overflow-x-auto text-xs font-mono" id="moduleTabs">
+              <button onclick="switchTab('coreTab', this)" class="px-4 py-2.5 text-white border-b-2 border-sky-400 bg-zinc-800/50 font-medium">core/</button>
+              <button onclick="switchTab('netTab', this)" class="px-4 py-2.5 text-zinc-400 hover:text-white transition-colors">net/</button>
+              <button onclick="switchTab('connTab', this)" class="px-4 py-2.5 text-zinc-400 hover:text-white transition-colors">connection/</button>
+              <button onclick="switchTab('httpTab', this)" class="px-4 py-2.5 text-zinc-400 hover:text-white transition-colors">http/</button>
+              <button onclick="switchTab('routingTab', this)" class="px-4 py-2.5 text-zinc-400 hover:text-white transition-colors">routing/ &amp; handlers/</button>
+              <button onclick="switchTab('cgiTab', this)" class="px-4 py-2.5 text-zinc-400 hover:text-white transition-colors">cgi/</button>
+            </div>
+
+            <!-- Tab 1: Core -->
+            <div id="coreTab" class="p-5 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-semibold text-white">src/core/</span>
+                <span class="text-xs font-mono text-zinc-500">Bootstrap &amp; Lifecycle</span>
+              </div>
+              <ul class="space-y-2 text-xs text-zinc-300 font-mono">
+                <li class="p-2 rounded bg-zinc-900/40 border border-border/50">
+                  <span class="text-sky-400 font-bold">Webserv (.hpp/.cpp)</span>: Central coordinator. Parses configuration, groups server blocks by unique (host, port) pairs, instantiates <code class="text-zinc-100">Listener</code> objects, and starts the <code class="text-zinc-100">Reactor</code>.
+                </li>
+                <li class="p-2 rounded bg-zinc-900/40 border border-border/50">
+                  <span class="text-sky-400 font-bold">Signal (.hpp/.cpp)</span>: Installs global signal handlers using <code class="text-zinc-100">sigaction()</code>. Flags atomic shutdown on <code class="text-zinc-100">SIGINT</code> and ignores <code class="text-zinc-100">SIGPIPE</code> so broken client sockets never crash the server.
+                </li>
+              </ul>
+            </div>
+
+            <!-- Tab 2: Net -->
+            <div id="netTab" class="hidden p-5 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-semibold text-white">src/net/</span>
+                <span class="text-xs font-mono text-zinc-500">I/O Multiplexing &amp; Event Loop</span>
+              </div>
+              <ul class="space-y-2 text-xs text-zinc-300 font-mono">
+                <li class="p-2 rounded bg-zinc-900/40 border border-border/50">
+                  <span class="text-emerald-400 font-bold">Reactor (.hpp/.cpp)</span>: The central <code class="text-zinc-100">poll()</code> event loop. Builds the <code class="text-zinc-100">pollfd</code> vector, calls <code class="text-zinc-100">poll()</code> with a 100ms timeout, and dispatches readiness to registered handlers.
+                </li>
+                <li class="p-2 rounded bg-zinc-900/40 border border-border/50">
+                  <span class="text-emerald-400 font-bold">PollRegistry (.hpp/.cpp)</span>: Bidirectional mapping between integer file descriptors and <code class="text-zinc-100">IEventHandler*</code>. Guards against stale descriptor re-registration.
+                </li>
+                <li class="p-2 rounded bg-zinc-900/40 border border-border/50">
+                  <span class="text-emerald-400 font-bold">Listener (.hpp/.cpp)</span>: Wraps a server listening socket. Resolves IPv4 hostnames via <code class="text-zinc-100">getaddrinfo()</code>, calls <code class="text-zinc-100">bind()</code> and <code class="text-zinc-100">listen()</code>, and on <code class="text-zinc-100">POLLIN</code> runs <code class="text-zinc-100">accept()</code> to create new connections.
+                </li>
+                <li class="p-2 rounded bg-zinc-900/40 border border-border/50">
+                  <span class="text-emerald-400 font-bold">Socket (.hpp/.cpp)</span>: RAII socket descriptor wrapper. Provides helper functions: <code class="text-zinc-100">setNonBlocking()</code>, <code class="text-zinc-100">setReuseAddr()</code>, and <code class="text-zinc-100">setCloexec()</code>.
+                </li>
+              </ul>
+            </div>
+
+            <!-- Tab 3: Connection -->
+            <div id="connTab" class="hidden p-5 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-semibold text-white">src/connection/</span>
+                <span class="text-xs font-mono text-zinc-500">Per-Client State &amp; Buffers</span>
+              </div>
+              <ul class="space-y-2 text-xs text-zinc-300 font-mono">
+                <li class="p-2 rounded bg-zinc-900/40 border border-border/50">
+                  <span class="text-amber-400 font-bold">Connection (.hpp/.cpp)</span>: The client state machine. Owns input/output buffers, parses incoming requests, triggers routing and handlers, and flushes output bytes non-blockingly.
+                </li>
+                <li class="p-2 rounded bg-zinc-900/40 border border-border/50">
+                  <span class="text-amber-400 font-bold">ConnectionManager (.hpp/.cpp)</span>: Registry of active client connections. Periodically sweeps for dead or timed-out connections.
+                </li>
+                <li class="p-2 rounded bg-zinc-900/40 border border-border/50">
+                  <span class="text-amber-400 font-bold">IoBuffer (.hpp/.cpp)</span>: Efficient FIFO byte buffer for streaming read/write operations without reallocation overhead.
+                </li>
+              </ul>
+            </div>
+
+            <!-- Tab 4: HTTP -->
+            <div id="httpTab" class="hidden p-5 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-semibold text-white">src/http/</span>
+                <span class="text-xs font-mono text-zinc-500">RFC 7230/7231 Parser &amp; Formatter</span>
+              </div>
+              <ul class="space-y-2 text-xs text-zinc-300 font-mono">
+                <li class="p-2 rounded bg-zinc-900/40 border border-border/50">
+                  <span class="text-indigo-400 font-bold">RequestParser (.hpp/.cpp)</span>: Multi-stage incremental stream parser for request lines, HTTP headers, and Content-Length bodies.
+                </li>
+                <li class="p-2 rounded bg-zinc-900/40 border border-border/50">
+                  <span class="text-indigo-400 font-bold">ChunkedDecoder (.hpp/.cpp)</span>: RFC 7230 chunked transfer decoder with strict CRLF checks and chunk size bounds.
+                </li>
+                <li class="p-2 rounded bg-zinc-900/40 border border-border/50">
+                  <span class="text-indigo-400 font-bold">ResponseSerializer (.hpp/.cpp)</span>: Formats <code class="text-zinc-100">HttpResponse</code> objects into compliant HTTP/1.1 wire protocol byte streams.
+                </li>
+              </ul>
+            </div>
+
+            <!-- Tab 5: Routing & Handlers -->
+            <div id="routingTab" class="hidden p-5 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-semibold text-white">src/routing/ &amp; src/handlers/</span>
+                <span class="text-xs font-mono text-zinc-500">Routing &amp; Actions</span>
+              </div>
+              <ul class="space-y-2 text-xs text-zinc-300 font-mono">
+                <li class="p-2 rounded bg-zinc-900/40 border border-border/50">
+                  <span class="text-purple-400 font-bold">Router (.hpp/.cpp)</span>: Matches Host header to virtual server, resolves longest matching location block, and checks allowed HTTP methods.
+                </li>
+                <li class="p-2 rounded bg-zinc-900/40 border border-border/50">
+                  <span class="text-purple-400 font-bold">StaticFileHandler</span>: Serves files, detects MIME types, serves index files or directory autoindexes.
+                </li>
+                <li class="p-2 rounded bg-zinc-900/40 border border-border/50">
+                  <span class="text-purple-400 font-bold">UploadHandler &amp; DeleteHandler</span>: Handles multipart form uploads and file deletions via <code class="text-zinc-100">unlink()</code>.
+                </li>
+              </ul>
+            </div>
+
+            <!-- Tab 6: CGI -->
+            <div id="cgiTab" class="hidden p-5 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-semibold text-white">src/cgi/</span>
+                <span class="text-xs font-mono text-zinc-500">RFC 3875 Script IPC</span>
+              </div>
+              <ul class="space-y-2 text-xs text-zinc-300 font-mono">
+                <li class="p-2 rounded bg-zinc-900/40 border border-border/50">
+                  <span class="text-rose-400 font-bold">CgiProcess (.hpp/.cpp)</span>: Forks child, sets up bidirectional non-blocking pipes, registers pipe handlers in the reactor, monitors execution timeout, and reaps child processes.
+                </li>
+                <li class="p-2 rounded bg-zinc-900/40 border border-border/50">
+                  <span class="text-rose-400 font-bold">CgiEnvironment (.hpp/.cpp)</span>: Populates standard RFC 3875 environment variables (<code class="text-zinc-100">REQUEST_METHOD</code>, <code class="text-zinc-100">QUERY_STRING</code>, <code class="text-zinc-100">CONTENT_LENGTH</code>, <code class="text-zinc-100">SCRIPT_NAME</code>, etc.).
+                </li>
+                <li class="p-2 rounded bg-zinc-900/40 border border-border/50">
+                  <span class="text-rose-400 font-bold">CgiResponseParser (.hpp/.cpp)</span>: Separates CGI output headers (<code class="text-zinc-100">Status:</code>, <code class="text-zinc-100">Content-Type:</code>) from the generated response body.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= SECTION 12: 42 EVALUATION DEFENSE ================= -->
+        <section id="evaluation-defense" class="scroll-mt-20 space-y-6">
+          <div class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-amber-400">
+            <span>12 &bull; Evaluation Defense Guide</span>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            42 Evaluation Masterclass: Defend Your Project With Confidence
+          </h2>
+          <p class="text-zinc-300 leading-relaxed">
+            During your peer evaluation, the evaluators are instructed to grill you on your design decisions, poll usage, descriptor handling, and RFC edge cases. Below are the exact questions they will ask and how to answer them like a senior systems engineer:
+          </p>
+
+          <!-- Accordion Q&A cards -->
+          <div class="space-y-3">
+            <details class="group rounded-lg border border-border bg-card p-4 transition-all duration-200">
+              <summary class="flex cursor-pointer items-center justify-between font-semibold text-sm text-zinc-100 list-none">
+                <span>Q1: "Why only one poll() loop? Can you show me in code where poll() is called?"</span>
+                <span class="transition-transform group-open:rotate-180 text-zinc-400">&darr;</span>
+              </summary>
+              <div class="mt-3 text-xs text-zinc-300 leading-relaxed space-y-2 border-t border-border pt-3">
+                <p>
+                  <strong>Answer:</strong> The subject strictly mandates that all I/O operations (listening sockets, client TCP streams, and CGI pipes) must be multiplexed through a single central <code class="text-sky-300 font-mono">poll()</code> (or select/kqueue/epoll).
+                </p>
+                <p>
+                  Open <code class="text-zinc-100 font-mono">src/net/Reactor.cpp</code> at line 41. Point directly to:
+                </p>
+                <pre class="bg-zinc-950 p-2.5 rounded font-mono text-[11px] text-zinc-300">int ready = poll(fds, pollfds.size(), POLL_TIMEOUT_MS);</pre>
+                <p>
+                  Explain that every file descriptor in the process lives inside <code class="text-zinc-100 font-mono">PollRegistry</code>. We never call <code class="text-zinc-100 font-mono">poll()</code> in any secondary function, thread, or CGI handler.
+                </p>
+              </div>
+            </details>
+
+            <details class="group rounded-lg border border-border bg-card p-4 transition-all duration-200">
+              <summary class="flex cursor-pointer items-center justify-between font-semibold text-sm text-zinc-100 list-none">
+                <span>Q2: "How do you guarantee that a client socket never blocks the server?"</span>
+                <span class="transition-transform group-open:rotate-180 text-zinc-400">&darr;</span>
+              </summary>
+              <div class="mt-3 text-xs text-zinc-300 leading-relaxed space-y-2 border-t border-border pt-3">
+                <p>
+                  <strong>Answer:</strong> Every socket accepted by <code class="text-zinc-100 font-mono">accept()</code> has <code class="text-zinc-100 font-mono">fcntl(fd, F_SETFL, O_NONBLOCK)</code> called on it immediately inside <code class="text-zinc-100 font-mono">Connection::Connection</code> (via <code class="text-zinc-100 font-mono">Socket::setNonBlocking</code>).
+                </p>
+                <p>
+                  Furthermore, <code class="text-zinc-100 font-mono">recv()</code> and <code class="text-zinc-100 font-mono">send()</code> are <em>only ever invoked</em> when the Reactor confirms that <code class="text-zinc-100 font-mono">poll()</code> returned <code class="text-zinc-100 font-mono">POLLIN</code> or <code class="text-zinc-100 font-mono">POLLOUT</code> for that exact descriptor. If a client stalls, <code class="text-zinc-100 font-mono">poll()</code> simply does not flag it, allowing other clients to be served without interruption.
+                </p>
+              </div>
+            </details>
+
+            <details class="group rounded-lg border border-border bg-card p-4 transition-all duration-200">
+              <summary class="flex cursor-pointer items-center justify-between font-semibold text-sm text-zinc-100 list-none">
+                <span>Q3: "What prevents CGI scripts from blocking the server or leaking zombie processes?"</span>
+                <span class="transition-transform group-open:rotate-180 text-zinc-400">&darr;</span>
+              </summary>
+              <div class="mt-3 text-xs text-zinc-300 leading-relaxed space-y-2 border-t border-border pt-3">
+                <p>
+                  <strong>Answer:</strong> Three complementary safeguards in <code class="text-zinc-100 font-mono">src/cgi/CgiProcess.cpp</code>:
+                </p>
+                <ol class="list-decimal list-inside space-y-1 text-zinc-400">
+                  <li><strong>Non-blocking Pipes:</strong> Parent pipe ends are set to non-blocking and registered directly into the central <code class="text-zinc-200 font-mono">PollRegistry</code>. The server feeds stdin and reads stdout asynchronously via the main reactor loop.</li>
+                  <li><strong>Process Reaping:</strong> The parent never runs blocking <code class="text-zinc-200 font-mono">wait()</code>. It uses <code class="text-zinc-200 font-mono">waitpid(_pid, &amp;status, WNOHANG)</code>. If the child hasn't terminated, the reactor continues running.</li>
+                  <li><strong>Timeout &amp; Kill:</strong> If a script exceeds 10 seconds (e.g. an infinite loop), <code class="text-zinc-200 font-mono">checkTimeout()</code> triggers <code class="text-zinc-200 font-mono">kill(_pid, SIGKILL)</code> and returns <strong class="text-zinc-200">504 Gateway Timeout</strong>.</li>
+                </ol>
+              </div>
+            </details>
+
+            <details class="group rounded-lg border border-border bg-card p-4 transition-all duration-200">
+              <summary class="flex cursor-pointer items-center justify-between font-semibold text-sm text-zinc-100 list-none">
+                <span>Q4: "Why do you use FD_CLOEXEC on your sockets?"</span>
+                <span class="transition-transform group-open:rotate-180 text-zinc-400">&darr;</span>
+              </summary>
+              <div class="mt-3 text-xs text-zinc-300 leading-relaxed space-y-2 border-t border-border pt-3">
+                <p>
+                  <strong>Answer:</strong> When webserv calls <code class="text-zinc-100 font-mono">fork()</code> to execute a CGI script, by default all open file descriptors in the parent process are duplicated in the child process.
+                </p>
+                <p>
+                  If a CGI script inherits our listening socket (e.g. port 8080) and runs for 10 minutes, and the server is restarted during that time, the kernel will return <code class="text-rose-400 font-mono">EADDRINUSE (Address already in use)</code> because the child script is still holding the socket open! Setting <code class="text-sky-300 font-mono">FD_CLOEXEC</code> ensures the operating system automatically closes all listening and client sockets upon <code class="text-zinc-100 font-mono">execve()</code>.
+                </p>
+              </div>
+            </details>
+
+            <details class="group rounded-lg border border-border bg-card p-4 transition-all duration-200">
+              <summary class="flex cursor-pointer items-center justify-between font-semibold text-sm text-zinc-100 list-none">
+                <span>Q5: "How do you test for memory leaks and descriptor leaks?"</span>
+                <span class="transition-transform group-open:rotate-180 text-zinc-400">&darr;</span>
+              </summary>
+              <div class="mt-3 text-xs text-zinc-300 leading-relaxed space-y-2 border-t border-border pt-3">
+                <p>
+                  Demonstrate the built-in commands from our README:
+                </p>
+                <pre class="bg-zinc-950 p-2.5 rounded font-mono text-[11px] text-zinc-300"># Run with Valgrind leak and descriptor tracking
+valgrind --leak-check=full --track-fds=yes ./webserv config/default.conf
+
+# In another terminal, run the full integration and siege stress suite:
+python3 tests/integration/test_regression.py --all
+siege -b -c 25 -t 30S http://127.0.0.1:8080/</pre>
+                <p>
+                  Show the evaluator that open descriptor count remains strictly constant and Valgrind reports zero leaks.
+                </p>
+              </div>
+            </details>
+          </div>
+        </section>
+
+        <!-- ================= SECTION 13: GITHUB PAGES DEPLOYMENT ================= -->
+        <section id="github-pages" class="scroll-mt-20 space-y-6">
+          <div class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-sky-400">
+            <span>13 &bull; Deployment Guide</span>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            Hosting This Page on GitHub Pages
+          </h2>
+          <p class="text-zinc-300 leading-relaxed">
+            This HTML document is completely standalone: it contains no external local font dependencies, utilizes Tailwind via CDN, and embeds all UI components and icons inline. You can host it on GitHub Pages in 3 simple steps:
+          </p>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div class="rounded-lg border border-border bg-card p-4 space-y-2">
+              <div class="font-semibold text-white font-mono flex items-center gap-2">
+                <span class="h-5 w-5 rounded-full bg-zinc-800 text-sky-400 flex items-center justify-center font-bold">1</span>
+                Push to GitHub
+              </div>
+              <p class="text-zinc-400 leading-relaxed">
+                Commit and push the <code class="text-zinc-200">explination/</code> folder to your repository:
+              </p>
+              <pre class="bg-zinc-950 p-2 rounded text-[11px] text-zinc-300 font-mono">git add explination/
+git commit -m "Add explination docs"
+git push origin main</pre>
+            </div>
+
+            <div class="rounded-lg border border-border bg-card p-4 space-y-2">
+              <div class="font-semibold text-white font-mono flex items-center gap-2">
+                <span class="h-5 w-5 rounded-full bg-zinc-800 text-sky-400 flex items-center justify-center font-bold">2</span>
+                Configure GitHub Pages
+              </div>
+              <p class="text-zinc-400 leading-relaxed">
+                In your GitHub repo, go to <strong>Settings</strong> &rarr; <strong>Pages</strong> (under "Code and automation").
+              </p>
+              <p class="text-zinc-400 leading-relaxed">
+                Under <strong>Build and deployment</strong> &gt; <strong>Source</strong>, select <code class="text-zinc-200">Deploy from a branch</code>.
+              </p>
+            </div>
+
+            <div class="rounded-lg border border-border bg-card p-4 space-y-2">
+              <div class="font-semibold text-white font-mono flex items-center gap-2">
+                <span class="h-5 w-5 rounded-full bg-zinc-800 text-sky-400 flex items-center justify-center font-bold">3</span>
+                Publish &amp; Share
+              </div>
+              <p class="text-zinc-400 leading-relaxed">
+                If publishing from root or a docs/gh-pages branch, you can link directly to:
+              </p>
+              <pre class="bg-zinc-950 p-2 rounded text-[11px] text-emerald-400 font-mono overflow-x-auto">https://&lt;user&gt;.github.io/&lt;repo&gt;/explination/</pre>
+              <p class="text-zinc-500 text-[11px]">
+                Because this file is named <code class="text-zinc-300 font-mono">index.html</code>, GitHub Pages serves it automatically!
+              </p>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="border-t border-border bg-zinc-950 py-8 text-xs text-zinc-500">
+    <div class="container mx-auto max-w-7xl px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+        <span>webserv &bull; Built with C++98, poll() and POSIX non-blocking networking.</span>
+      </div>
+      <div class="flex items-center space-x-4">
+        <a href="#overview" class="hover:text-zinc-300 transition-colors">Back to top &uarr;</a>
+        <span>&bull;</span>
+        <a href="https://tools.ietf.org/html/rfc7230" target="_blank" rel="noreferrer" class="hover:text-zinc-300 transition-colors">RFC 7230</a>
+        <span>&bull;</span>
+        <a href="https://tools.ietf.org/html/rfc3875" target="_blank" rel="noreferrer" class="hover:text-zinc-300 transition-colors">RFC 3875</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==================== CLIENT JAVASCRIPT ==================== -->
+  <script>
+    // Tab switcher
+    function switchTab(tabId, btn) {
+      const tabs = ['coreTab', 'netTab', 'connTab', 'httpTab', 'routingTab', 'cgiTab'];
+      tabs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
+      const activeEl = document.getElementById(tabId);
+      if (activeEl) activeEl.classList.remove('hidden');
+
+      // Update button styles
+      const buttons = document.querySelectorAll('#moduleTabs button');
+      buttons.forEach(b => {
+        b.classList.remove('text-white', 'border-b-2', 'border-sky-400', 'bg-zinc-800/50', 'font-medium');
+        b.classList.add('text-zinc-400');
+      });
+      btn.classList.remove('text-zinc-400');
+      btn.classList.add('text-white', 'border-b-2', 'border-sky-400', 'bg-zinc-800/50', 'font-medium');
+    }
+
+    // Code copy helper
+    function copyCode(button) {
+      const pre = button.parentElement.nextElementSibling;
+      const text = pre ? pre.innerText : '';
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = button.innerHTML;
+        button.innerHTML = '<span class="text-emerald-400 font-semibold">&check; Copied</span>';
+        setTimeout(() => {
+          button.innerHTML = orig;
+        }, 2000);
+      });
+    }
+
+    // Search filter
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        const sections = document.querySelectorAll('main > section');
+        sections.forEach(section => {
+          if (!query) {
+            section.style.display = '';
+            return;
+          }
+          const text = section.innerText.toLowerCase();
+          section.style.display = text.includes(query) ? '' : 'none';
+        });
+      });
+    }
+
+    // Active TOC link highlighting on scroll
+    window.addEventListener('scroll', () => {
+      const sections = document.querySelectorAll('main > section');
+      const navLinks = document.querySelectorAll('#tocNav a');
+      let currentSectionId = '';
+
+      sections.forEach(sec => {
+        const top = sec.offsetTop - 120;
+        if (window.scrollY >= top) {
+          currentSectionId = sec.getAttribute('id');
+        }
+      });
+
+      navLinks.forEach(link => {
+        link.classList.remove('text-white', 'font-semibold', 'translate-x-1');
+        if (link.getAttribute('href') === '#' + currentSectionId) {
+          link.classList.add('text-white', 'font-semibold', 'translate-x-1');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
