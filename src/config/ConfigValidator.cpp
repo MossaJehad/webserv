@@ -43,7 +43,8 @@ void ConfigValidator::validate(std::vector<ServerConfig>& servers) {
             int port = ports[p];
             std::pair<std::string, int> endpoint = std::make_pair(server.getHost(), port);
             for (size_t n = 0; n < names.size(); ++n) {
-                std::pair<std::pair<std::string, int>, std::string> key = std::make_pair(endpoint, names[n]);
+                std::pair<std::pair<std::string, int>, std::string> key =
+                    std::make_pair(endpoint, StringUtils::toLower(names[n]));
                 if (seenServerNames.count(key)) {
                     Logger::warn("Conflicting server_name '" + names[n] + "' on " + server.getHost() + ":" + StringUtils::toString(port) + ", ignored");
                 } else {

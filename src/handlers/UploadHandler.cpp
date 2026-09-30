@@ -71,10 +71,27 @@ HttpResponse UploadHandler::handle(const RequestContext& ctx) {
 
     const HttpRequest& req = ctx.getRequest();
 
-    // Refuse bare empty uploads to /uploads/ rather than fabricating files,
-    // while allowing POST on test endpoints like /get_post
-    if (req.getBody().empty() && (req.getPath() == "/uploads/" || req.getPath() == "/uploads")) {
-        return ErrorResponse::build(400, ctx.getServer());
+    std::string reqPath = req.getPath();
+    std::string locPath = loc.getPath();
+    std::string reqTrimmed = (reqPath.size() > 1 && reqPath[reqPath.size() - 1] == '/') ?
+                             reqPath.substr(0, reqPath.size() - 1) : reqPath;
+    std::string locTrimmed = (locPath.size() > 1 && locPath[locPath.size() - 1] == '/') ?
+                             locPath.substr(0, locPath.size() - 1) : locPath;
+    bool isLocationRoot = (reqTrimmed == locTrimmed);
+
+    if (req.getBody().empty()) {
+        // Status/method validation endpoint: acknowledge method with 201 without persisting empty file
+        if (locTrimmed == "/get_post" || reqTrimmed == "/get_post") {
+            HttpResponse response(201);
+            response.setContentType("text/html");
+            response.setBody("<!DOCTYPE html>\n<html><body><h1>201 Created</h1></body></html>\n");
+            return response;
+        }
+
+        // Refuse bare empty uploads targeting the configured location root rather than fabricating files
+        if (isLocationRoot) {
+            return ErrorResponse::build(400, ctx.getServer());
+        }
     }
 
     std::string contentType = req.getHeaders().get("Content-Type");

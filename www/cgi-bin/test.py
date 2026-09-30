@@ -16,8 +16,10 @@ else:
     parsed = urllib.parse.parse_qs(query_string)
     params = {k: v[0] for k, v in parsed.items()}
 
-name = params.get("name", "Student")
-status = params.get("status", "OK")
+import html
+
+name = html.escape(params.get("name", "Student"))
+status = html.escape(params.get("status", "OK"))
 
 print("Content-Type: text/html\r\n\r\n", end="")
 print(f"""<!DOCTYPE html>
