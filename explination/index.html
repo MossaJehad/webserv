@@ -84,9 +84,13 @@
     }
 
     /* Custom scrollbar */
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: hsl(240 3.7% 20%) transparent;
+    }
     ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
+      width: 4px;
+      height: 4px;
     }
     ::-webkit-scrollbar-track {
       background: hsl(240 10% 3.9%);
@@ -97,6 +101,15 @@
     }
     ::-webkit-scrollbar-thumb:hover {
       background: hsl(240 3.7% 30%);
+    }
+    nav {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    nav::-webkit-scrollbar {
+      display: none;
+      width: 0;
+      height: 0;
     }
 
     /* Code block styling */

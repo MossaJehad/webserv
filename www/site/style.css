@@ -105,12 +105,17 @@ body {
 }
 
 /* Custom Scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--secondary) transparent;
+}
+
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--background);
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
   background: var(--secondary);
@@ -205,6 +210,15 @@ body {
   border: 1px solid var(--border);
   overflow-x: auto;
   width: 100%;
+  scrollbar-width: none; /* Hide scrollbar for Firefox */
+  -ms-overflow-style: none; /* Hide scrollbar for IE/Edge */
+  -webkit-overflow-scrolling: touch;
+}
+
+.tabs-list::-webkit-scrollbar {
+  display: none; /* Hide scrollbar for Chrome, Safari, Edge, Opera */
+  width: 0;
+  height: 0;
 }
 
 .tabs-trigger {
@@ -223,6 +237,7 @@ body {
   cursor: pointer;
   transition: all 150ms ease;
   user-select: none;
+  flex-shrink: 0;
 }
 
 .tabs-trigger:hover {
