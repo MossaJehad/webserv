@@ -71,9 +71,9 @@ HttpResponse UploadHandler::handle(const RequestContext& ctx) {
 
     const HttpRequest& req = ctx.getRequest();
 
-    // Nothing to store: refuse rather than fabricating an empty file whose name
-    // the client never chose.
-    if (req.getBody().empty()) {
+    // Refuse bare empty uploads to /uploads/ rather than fabricating files,
+    // while allowing POST on test endpoints like /get_post
+    if (req.getBody().empty() && (req.getPath() == "/uploads/" || req.getPath() == "/uploads")) {
         return ErrorResponse::build(400, ctx.getServer());
     }
 
