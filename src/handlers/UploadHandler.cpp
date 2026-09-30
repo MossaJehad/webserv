@@ -81,7 +81,7 @@ HttpResponse UploadHandler::handle(const RequestContext& ctx) {
 
     if (req.getBody().empty()) {
         // Status/method validation endpoint: acknowledge method with 201 without persisting empty file
-        if (locTrimmed == "/get_post" || reqTrimmed == "/get_post") {
+        if (locTrimmed == "/get_post" && isLocationRoot) {
             HttpResponse response(201);
             response.setContentType("text/html");
             response.setBody("<!DOCTYPE html>\n<html><body><h1>201 Created</h1></body></html>\n");
