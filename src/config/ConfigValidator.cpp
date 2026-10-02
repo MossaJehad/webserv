@@ -2,6 +2,7 @@
 #include "Exceptions.hpp"
 #include "FileSystem.hpp"
 #include "StringUtils.hpp"
+#include "Logger.hpp"
 #include <set>
 
 static std::string detectInterpreter(const std::string& ext) {
@@ -23,6 +24,8 @@ void ConfigValidator::validate(std::vector<ServerConfig>& servers) {
         throw ConfigError("No server configurations found");
     }
 
+    std::set<std::pair<std::pair<std::string, int>, std::string> > seenServerNames;
+
     for (size_t s = 0; s < servers.size(); ++s) {
         ServerConfig& server = servers[s];
 
@@ -32,6 +35,22 @@ void ConfigValidator::validate(std::vector<ServerConfig>& servers) {
 
         if (server.getPorts().empty()) {
             server.addPort(DEFAULT_PORT);
+        }
+
+        const std::vector<std::string>& names = server.getServerNames();
+        const std::vector<int>& ports = server.getPorts();
+        for (size_t p = 0; p < ports.size(); ++p) {
+            int port = ports[p];
+            std::pair<std::string, int> endpoint = std::make_pair(server.getHost(), port);
+            for (size_t n = 0; n < names.size(); ++n) {
+                std::pair<std::pair<std::string, int>, std::string> key =
+                    std::make_pair(endpoint, StringUtils::toLower(names[n]));
+                if (seenServerNames.count(key)) {
+                    Logger::warn("Conflicting server_name '" + names[n] + "' on " + server.getHost() + ":" + StringUtils::toString(port) + ", ignored");
+                } else {
+                    seenServerNames.insert(key);
+                }
+            }
         }
 
         if (server.getRoot().empty()) {
