@@ -89,20 +89,29 @@ def server_pid():
     by a tool such as valgrind (whose process name is not "webserv"), while
     still ignoring shells whose command line merely mentions the binary.
     """
-    for entry in os.listdir("/proc"):
-        if not entry.isdigit():
-            continue
-        try:
-            with open(f"/proc/{entry}/cmdline", "rb") as f:
-                argv = f.read().split(b"\0")
-        except OSError:
-            continue
-        argv = [a.decode(errors="replace") for a in argv if a]
-        if not argv:
-            continue
-        if any(a.endswith("webserv") or a.endswith("/webserv") for a in argv) and \
-                not any(a in ("bash", "sh", "-c") for a in argv):
-            return entry
+    if os.path.exists("/proc"):
+        for entry in os.listdir("/proc"):
+            if not entry.isdigit():
+                continue
+            try:
+                with open(f"/proc/{entry}/cmdline", "rb") as f:
+                    argv = f.read().split(b"\0")
+            except OSError:
+                continue
+            argv = [a.decode(errors="replace") for a in argv if a]
+            if not argv:
+                continue
+            if any(a.endswith("webserv") or a.endswith("/webserv") for a in argv) and \
+                    not any(a in ("bash", "sh", "-c") for a in argv):
+                return entry
+    else:
+        out = subprocess.run(["ps", "-eo", "pid,command"], capture_output=True, text=True).stdout.splitlines()
+        for line in out[1:]:
+            parts = line.strip().split(None, 1)
+            if len(parts) == 2:
+                pid, cmd = parts[0], parts[1]
+                if ("./webserv" in cmd or "/webserv " in cmd or cmd.endswith("webserv")) and not any(sh in cmd for sh in ("bash", "sh", "python", "grep")):
+                    return pid
     return None
 
 
@@ -329,10 +338,17 @@ def test_fd_not_leaking():
         return
 
     def count_fds():
-        try:
-            return len(os.listdir(f"/proc/{pid}/fd"))
-        except OSError:
-            return -1
+        if os.path.exists(f"/proc/{pid}/fd"):
+            try:
+                return len(os.listdir(f"/proc/{pid}/fd"))
+            except OSError:
+                return -1
+        else:
+            try:
+                res = subprocess.run(["lsof", "-p", str(pid)], capture_output=True, text=True)
+                return len(res.stdout.splitlines())
+            except Exception:
+                return -1
 
     before = count_fds()
     for i in range(60):
@@ -552,10 +568,15 @@ def test_cgi_does_not_inherit_server_sockets():
         sockets = 0
         for kid in kids:
             try:
-                for fd in os.listdir(f"/proc/{kid}/fd"):
-                    target = os.readlink(f"/proc/{kid}/fd/{fd}")
-                    if target.startswith("socket:"):
-                        sockets += 1
+                if os.path.exists(f"/proc/{kid}/fd"):
+                    for fd in os.listdir(f"/proc/{kid}/fd"):
+                        target = os.readlink(f"/proc/{kid}/fd/{fd}")
+                        if target.startswith("socket:"):
+                            sockets += 1
+                else:
+                    res = subprocess.run(["lsof", "-a", "-i", "-p", str(kid)], capture_output=True, text=True)
+                    lines = [l for l in res.stdout.splitlines() if l and not l.startswith("COMMAND")]
+                    sockets += len(lines)
             except OSError:
                 pass
         check("CGI child inherits no server sockets (FD_CLOEXEC)", sockets == 0,
@@ -826,13 +847,20 @@ def test_pipelined_flood_is_bounded():
         return
 
     def rss_kb():
-        try:
-            with open(f"/proc/{pid}/status") as f:
-                for line in f:
-                    if line.startswith("VmRSS:"):
-                        return int(line.split()[1])
-        except OSError:
-            pass
+        if os.path.exists(f"/proc/{pid}/status"):
+            try:
+                with open(f"/proc/{pid}/status") as f:
+                    for line in f:
+                        if line.startswith("VmRSS:"):
+                            return int(line.split()[1])
+            except OSError:
+                pass
+        else:
+            try:
+                res = subprocess.run(["ps", "-o", "rss=", "-p", str(pid)], capture_output=True, text=True)
+                return int(res.stdout.strip())
+            except Exception:
+                pass
         return -1
 
     before = rss_kb()
