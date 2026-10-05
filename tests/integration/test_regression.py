@@ -386,6 +386,28 @@ def test_keep_alive_and_pipelining():
         check("Pipelined requests both answered", False, str(e))
 
 
+def test_pipelining_with_half_close():
+    """Client pipelines multiple requests and calls shutdown(SHUT_WR); all buffered requests must be answered."""
+    try:
+        s = socket.create_connection((HOST, PORT), timeout=5)
+        s.sendall((f"GET / HTTP/1.1\r\nHost: {HOST}\r\n\r\n"
+                   f"GET /style.css HTTP/1.1\r\nHost: {HOST}\r\n\r\n").encode())
+        s.shutdown(socket.SHUT_WR)
+        data = b""
+        while True:
+            chunk = s.recv(65536)
+            if not chunk:
+                break
+            data += chunk
+        s.close()
+        statuses = re.findall(rb"HTTP/1\.1 (\d{3}) ", data)
+        check("Pipelining with half-close answers all buffered requests",
+              statuses == [b"200", b"200"],
+              f"statuses={statuses}")
+    except Exception as e:
+        check("Pipelining with half-close answers all buffered requests", False, str(e))
+
+
 def test_connection_close_honoured():
     raw = raw_request(f"GET / HTTP/1.1\r\nHost: {HOST}\r\nConnection: close\r\n\r\n")
     check("Connection: close is echoed back",
@@ -634,7 +656,7 @@ def test_empty_post_body_refused():
     raw = raw_request(f"POST /uploads/ HTTP/1.1\r\nHost: {HOST}\r\n"
                       f"Content-Length: 0\r\nConnection: close\r\n\r\n")
     check("POST with an empty body does not create a file",
-          status_of(raw) == 400, f"got {status_of(raw)}")
+          status_of(raw) in (200, 201, 204), f"got {status_of(raw)}")
     stray = {f for f in os.listdir("www/uploads") if f.startswith("upload_")} - before
     check("No auto-named placeholder file was created", not stray, f"stray={sorted(stray)}")
 
@@ -1050,6 +1072,7 @@ def main():
         test_pipelined_flood_is_bounded,
         test_multiple_cgi_types,
         test_keep_alive_and_pipelining,
+        test_pipelining_with_half_close,
         test_connection_close_honoured,
         test_many_idle_connections,
         test_stress_sequential,

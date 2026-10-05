@@ -43,6 +43,7 @@ private:
     PollRegistry* _registry;
     bool _keepAlive;
     bool _lingerOnClose;
+    bool _readEof;
 
     void processRequest();
     void sendError(int statusCode, const ServerConfig* server = NULL,

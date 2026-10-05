@@ -57,7 +57,8 @@ Connection::Connection(int clientFd,
       _cgiProcess(NULL),
       _registry(&registry),
       _keepAlive(true),
-      _lingerOnClose(false) {
+      _lingerOnClose(false),
+      _readEof(false) {
     Socket::setNonBlocking(clientFd);
     // A CGI child must not inherit this socket, otherwise the peer would not
     // see the connection close until that unrelated child exits.
@@ -196,7 +197,7 @@ void Connection::handleRead() {
         return;
     }
 
-    if (_state == CONN_STATE_WAIT_CGI) {
+    if (_state == CONN_STATE_WAIT_CGI || _state == CONN_STATE_WRITING) {
         drainWhileBusy();
         return;
     }
@@ -241,34 +242,38 @@ void Connection::consume(const char* data, size_t len) {
     }
 }
 
-// While a CGI child owns the response, the client socket stays in the poll set
-// so a disconnect is noticed immediately instead of waiting for the idle
-// timeout. Anything the client pipelines is stashed and replayed later.
+// While busy producing or transmitting a response, monitor the socket to detect
+// client half-closes (SHUT_WR) or disconnects without dropping the in-flight
+// response. Pipelined data is buffered up to MAX_PIPELINED_BYTES; beyond that,
+// read interest is suspended in wantsRead() so TCP backpressure stops the peer.
 void Connection::drainWhileBusy() {
-    char buffer[8192];
-    ssize_t bytes = recv(_socket.getFd(), buffer, sizeof(buffer), 0);
-
-    if (bytes == 0 || bytes < 0) {
-        Logger::info(std::string(bytes == 0 ? "Client closed" : "Socket failed")
-                     + " while CGI was running on fd " + StringUtils::toString(getFd()));
-        close(); // also kills and reaps the CGI child
+    if (_inBuffer.size() >= MAX_PIPELINED_BYTES) {
         return;
     }
 
-    _lastActivity = Time::now();
+    size_t remaining = MAX_PIPELINED_BYTES - _inBuffer.size();
+    char buffer[8192];
+    size_t toRead = (remaining < sizeof(buffer)) ? remaining : sizeof(buffer);
 
-    // A legitimately pipelined request is just a header block, so the stash is
-    // bounded. Without this a peer could stream for the whole CGI window and
-    // grow our memory without limit, since draining defeats TCP backpressure.
-    if (_inBuffer.size() + static_cast<size_t>(bytes) > MAX_PIPELINED_BYTES) {
-        Logger::warn("Peer streamed more than " +
-                     StringUtils::toString(MAX_PIPELINED_BYTES) +
-                     " bytes while CGI was running; dropping fd " +
-                     StringUtils::toString(getFd()));
+    ssize_t bytes = recv(_socket.getFd(), buffer, toRead, 0);
+
+    if (bytes < 0) {
+        Logger::info("Socket failed while busy on fd " + StringUtils::toString(getFd()));
         close();
         return;
     }
 
+    if (bytes == 0) {
+        // Read-side EOF: client half-closed (shutdown(SHUT_WR)). Stop reading
+        // and clear any linger state (no more input will arrive), but preserve
+        // HTTP connection policy so any already-buffered pipelined requests
+        // in _inBuffer can be processed and answered before closing.
+        _readEof = true;
+        _lingerOnClose = false;
+        return;
+    }
+
+    _lastActivity = Time::now();
     _inBuffer.append(buffer, static_cast<size_t>(bytes));
 }
 
@@ -299,7 +304,7 @@ ConnectionState Connection::getState() const {
 
 void Connection::finishResponse() {
     if (!_keepAlive) {
-        if (_lingerOnClose) {
+        if (_lingerOnClose && !_readEof) {
             // The peer is probably still pushing a body we refused. Closing now
             // would reset the connection and destroy the response it has not
             // read yet, so drain quietly until it stops or the linger expires.
@@ -319,6 +324,12 @@ void Connection::finishResponse() {
         std::string pending = _inBuffer.str();
         _inBuffer.clear();
         consume(pending.data(), pending.size());
+    }
+
+    // If read-side EOF was already observed and no subsequent request was
+    // completed from the buffered input, close now (no more bytes will arrive).
+    if (_readEof && _state == CONN_STATE_READING) {
+        close();
     }
 }
 
@@ -366,12 +377,15 @@ void Connection::handleWrite() {
 }
 
 bool Connection::wantsRead() const {
-    if (isDead()) {
+    if (isDead() || _readEof) {
         return false;
     }
-    return _state == CONN_STATE_READING ||
-           _state == CONN_STATE_WAIT_CGI ||
-           _state == CONN_STATE_LINGER;
+    // Suspend read interest while busy if the pipelined buffer is full to apply TCP backpressure
+    if ((_state == CONN_STATE_WRITING || _state == CONN_STATE_WAIT_CGI) &&
+        _inBuffer.size() >= MAX_PIPELINED_BYTES) {
+        return false;
+    }
+    return true;
 }
 
 bool Connection::wantsWrite() const {
