@@ -279,7 +279,13 @@ void CgiProcess::handleStdoutRead() {
     }
 
     if (bytes < 0) {
-        return; // Not ready yet; wait for the next poll() event
+        Logger::error("Failed to read CGI output from pipe; failing request");
+        cleanup();
+        _isDone = true;
+        _isError = true;
+        _errorCode = 502;
+        _response = ErrorResponse::build(502, _ctx.getServer());
+        return;
     }
 
     // bytes == 0: the child closed its stdout, which marks end of output.

@@ -196,7 +196,7 @@ void Connection::handleRead() {
         return;
     }
 
-    if (_state == CONN_STATE_WAIT_CGI) {
+    if (_state == CONN_STATE_WAIT_CGI || _state == CONN_STATE_WRITING) {
         drainWhileBusy();
         return;
     }
@@ -366,12 +366,7 @@ void Connection::handleWrite() {
 }
 
 bool Connection::wantsRead() const {
-    if (isDead()) {
-        return false;
-    }
-    return _state == CONN_STATE_READING ||
-           _state == CONN_STATE_WAIT_CGI ||
-           _state == CONN_STATE_LINGER;
+    return !isDead();
 }
 
 bool Connection::wantsWrite() const {
