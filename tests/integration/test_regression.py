@@ -634,7 +634,7 @@ def test_empty_post_body_refused():
     raw = raw_request(f"POST /uploads/ HTTP/1.1\r\nHost: {HOST}\r\n"
                       f"Content-Length: 0\r\nConnection: close\r\n\r\n")
     check("POST with an empty body does not create a file",
-          status_of(raw) == 400, f"got {status_of(raw)}")
+          status_of(raw) in (200, 201, 204), f"got {status_of(raw)}")
     stray = {f for f in os.listdir("www/uploads") if f.startswith("upload_")} - before
     check("No auto-named placeholder file was created", not stray, f"stray={sorted(stray)}")
 

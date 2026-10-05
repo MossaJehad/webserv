@@ -80,17 +80,12 @@ HttpResponse UploadHandler::handle(const RequestContext& ctx) {
     bool isLocationRoot = (reqTrimmed == locTrimmed);
 
     if (req.getBody().empty()) {
-        // Status/method validation endpoint: acknowledge method with 201 without persisting empty file
-        if (locTrimmed == "/get_post" && isLocationRoot) {
+        // Acknowledge allowed method without fabricating unnamed files on location root
+        if (isLocationRoot) {
             HttpResponse response(201);
             response.setContentType("text/html");
             response.setBody("<!DOCTYPE html>\n<html><body><h1>201 Created</h1></body></html>\n");
             return response;
-        }
-
-        // Refuse bare empty uploads targeting the configured location root rather than fabricating files
-        if (isLocationRoot) {
-            return ErrorResponse::build(400, ctx.getServer());
         }
     }
 
