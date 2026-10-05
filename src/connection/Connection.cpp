@@ -265,10 +265,11 @@ void Connection::drainWhileBusy() {
 
     if (bytes == 0) {
         // Read-side EOF: client half-closed (shutdown(SHUT_WR)). Stop reading
-        // and disable keep-alive, but preserve the connection so the pending
-        // response can be flushed.
+        // and clear any linger state (no more input will arrive), but preserve
+        // HTTP connection policy so any already-buffered pipelined requests
+        // in _inBuffer can be processed and answered before closing.
         _readEof = true;
-        _keepAlive = false;
+        _lingerOnClose = false;
         return;
     }
 
@@ -303,7 +304,7 @@ ConnectionState Connection::getState() const {
 
 void Connection::finishResponse() {
     if (!_keepAlive) {
-        if (_lingerOnClose) {
+        if (_lingerOnClose && !_readEof) {
             // The peer is probably still pushing a body we refused. Closing now
             // would reset the connection and destroy the response it has not
             // read yet, so drain quietly until it stops or the linger expires.
@@ -323,6 +324,12 @@ void Connection::finishResponse() {
         std::string pending = _inBuffer.str();
         _inBuffer.clear();
         consume(pending.data(), pending.size());
+    }
+
+    // If read-side EOF was already observed and no subsequent request was
+    // completed from the buffered input, close now (no more bytes will arrive).
+    if (_readEof && _state == CONN_STATE_READING) {
+        close();
     }
 }
 
