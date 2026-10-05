@@ -1,4 +1,4 @@
-*This project has been created as part of the 42 curriculum by mjehad.*
+*This project has been created as part of the 42 curriculum by mhasoneh, nqasem, dal-mahr.*
 
 # webserv — HTTP/1.1 Web Server
 
@@ -153,6 +153,152 @@ siege -b -c 30 -t 60S -f urls.txt                        # mixed static/CGI/uplo
 # While siege runs, memory and descriptors must both stay flat:
 watch -n1 "grep VmRSS /proc/\$(pgrep -x webserv)/status; ls /proc/\$(pgrep -x webserv)/fd | wc -l"
 ```
+
+---
+
+## Testing
+
+To ensure the server functions correctly and adheres to the project requirements, we have established a comprehensive set of manual test cases using `curl`.
+
+### 1. Basic Functionality
+Ensure the server is running: `./webserv configs/evaluation_basic.conf`
+
+- **Homepage Access (Index):**
+  ```bash
+  curl -v http://127.0.0.1:8080/
+  ```
+- **Static File Access:**
+  ```bash
+  curl -v http://127.0.0.1:8080/get.html
+  ```
+- **404 Error Handling:**
+  ```bash
+  curl -v http://127.0.0.1:8080/nonexistent
+  ```
+
+### 2. Method Validation
+Ensure the server is running: `./webserv configs/evaluation_methods.conf`
+
+- **Testing Method Restriction (405):**
+  ```bash
+  curl -X POST -v http://127.0.0.1:8093/only_get
+  ```
+- **Testing Allowed Methods (201):**
+  ```bash
+  curl -X POST -v http://127.0.0.1:8093/get_post
+  ```
+
+### 3. CGI Execution
+Ensure the server is running: `./webserv configs/evaluation_cgi.conf`
+
+- **GET Request to CGI Script:**
+  ```bash
+  curl -v http://127.0.0.1:8081/cgi-bin/test.py
+  ```
+- **POST Request to CGI Script:**
+  ```bash
+  curl -d "name=Tamara&status=Success" -v http://127.0.0.1:8081/cgi-bin/test.py
+  ```
+
+### 4. Directory Listing & Index Handling
+Ensure the server is running: `./webserv configs/evaluation_full.conf`
+
+- **Autoindex Enabled:**
+  ```bash
+  curl -v http://127.0.0.1:8080/auto_on/
+  ```
+- **Autoindex Disabled (Serving Index File):**
+  ```bash
+  curl -v http://127.0.0.1:8080/has_index/
+  ```
+- **Autoindex Disabled (Security/No Index):**
+  ```bash
+  curl -v http://127.0.0.1:8080/no_index/
+  ```
+
+### 5. Advanced Features & File Cycle (Upload, Get, Delete)
+Ensure the server is running: `./webserv configs/evaluation_upload.conf`
+
+- **Create a test file:**
+  ```bash
+  echo "Hello Webserv" > test_upload.txt
+  ```
+- **Upload File (POST - 201 Created):**
+  ```bash
+  curl -X POST -H "Content-Type: text/plain" --data-binary @test_upload.txt -v http://127.0.0.1:8082/upload/test_upload.txt
+  ```
+- **Retrieve Uploaded File (GET - 200 OK):**
+  ```bash
+  curl -X GET -v http://127.0.0.1:8082/upload/test_upload.txt
+  ```
+- **Delete Uploaded File (DELETE - 204 No Content):**
+  ```bash
+  curl -X DELETE -v http://127.0.0.1:8082/upload/test_upload.txt
+  ```
+
+### 6. Max Body Size (413 Payload Too Large)
+Ensure the server is running: `./webserv configs/evaluation_413.conf`
+
+- **Test exceeding body limit:**
+  ```bash
+  curl -v -X POST -H "Content-Type: text/plain" -d "This string is definitely larger than the limit we set in our config file" http://127.0.0.1:8083/
+  ```
+
+### 7. Configuration & Error Handling
+- **Invalid Syntax:**
+  ```bash
+  ./webserv configs/invalid.conf
+  ```
+  *Expectation:* Detect syntax error, print a clear message, and exit safely.
+- **Duplicate Server Name:**
+  ```bash
+  ./webserv configs/duplicate_server_name.conf
+  ```
+  *Expectation:* Detect conflict (`server_name`/port) and report a warning or error.
+
+### 8. Multi-Server Routing
+Ensure the server is running: `./webserv configs/evaluation_multi.conf`
+
+- **Test Server 1:**
+  ```bash
+  curl -H "Host: server1.com" http://127.0.0.1:8084/
+  ```
+- **Test Server 2:**
+  ```bash
+  curl -H "Host: server2.com" http://127.0.0.1:8085/
+  ```
+
+### 9. CGI Error Handling
+Ensure the server is running: `./webserv configs/evaluation_cgi.conf`
+
+- **CGI Timeout / Infinite Loop:**
+  ```bash
+  curl -v http://127.0.0.1:8081/cgi-bin/infinite.py
+  ```
+  *Expectation:* The server should detect the timeout, terminate the process, and return an error (e.g., 500 or 504) without crashing.
+- **CGI Syntax Error:**
+  ```bash
+  curl -v http://127.0.0.1:8081/cgi-bin/error.py
+  ```
+  *Expectation:* Return 500 Internal Server Error without crashing.
+
+### 10. Browser Verification & Redirects
+Ensure the server is running: `./webserv configs/evaluation_full.conf`
+
+- **Network Tab Inspection:**
+  Open your browser, press F12 (Network Tab), and navigate to `http://127.0.0.1:8080/`.
+  *Expectation:* Observe Status Code: `200 OK` and verify correct Response Headers (e.g., Server name, Content-Length).
+
+### 11. Testing with Siege (Load Testing)
+Siege is used to simulate multiple concurrent users and verify that the server remains stable under high load without crashing or blocking.
+
+Ensure the server is running: `./webserv configs/evaluation_basic.conf`
+
+- **Run a Load Test (Benchmarking Mode):**
+  ```bash
+  siege -c 10 -t 30S -b http://127.0.0.1:8080/
+  ```
+  *Expectation:* Availability remains above 99.5%, no hanging connections, and no memory leaks (monitor via `top` or `htop` during execution).
 
 ---
 
