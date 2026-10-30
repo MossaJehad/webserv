@@ -3,9 +3,50 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Alternate route</title>
+    <meta name="description" content="Alternate route verification page for webserv HTTP server.">
+    <title>Alternate Route: webserv</title>
+    <style>
+/* Hallmark · shape: app screen · genre: modern-minimal · theme: brand · redesign: full
+ * paper: oklch(14% 0.015 250) · accent: oklch(76% 0.14 225) · display: system-ui · body: system-ui
+ * nav: none · signature: alt-panel · states: 8
+ * axes: dark/grotesk-sans/chromatic-cyan · posture: centered · contrast: pass · v2.0.0 */
+/* Hallmark · pre-emit critique: P9 H9 E9 S9 R9 V9 · weakest: none, minimal route fixture */
+:root {
+  --color-paper: oklch(14% 0.015 250);
+  --color-ink: oklch(98% 0.005 250);
+  --color-ink-2: oklch(76% 0.02 245);
+  --color-accent: oklch(76% 0.14 225);
+  --color-focus: oklch(76% 0.14 225);
+  --color-rule: oklch(25% 0.02 250);
+  --color-paper-2: oklch(18% 0.02 250);
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { overflow-x: clip; }
+html { scrollbar-color: var(--color-ink-2) var(--color-paper); }
+::selection { background-color: var(--color-paper-2); color: var(--color-ink); }
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  text-align: center;
+  padding: 48px 16px;
+  line-height: 1.6;
+}
+:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+h1 { font-size: 1.5rem; margin-bottom: 12px; text-wrap: balance; }
+p { color: var(--color-ink-2); font-size: 0.95rem; margin-bottom: 12px; }
+code { font-family: var(--font-mono); color: var(--color-accent); }
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+a:active { opacity: 0.8; }
+    </style>
 </head>
-<body style="font-family: Arial, sans-serif; text-align: center; margin-top: 100px;">
+<body>
     <h1>/alt is served from www/alt</h1>
     <p>This route has its own root directory and its own default file
        (<code>home.html</code> instead of <code>index.html</code>),

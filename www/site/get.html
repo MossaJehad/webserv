@@ -2,7 +2,38 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Static Get Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Static GET endpoint verification for webserv.">
+    <title>Static GET Verification: webserv</title>
+    <style>
+/* Hallmark · shape: app screen · genre: modern-minimal · theme: brand · redesign: full
+ * paper: oklch(14% 0.015 250) · accent: oklch(76% 0.14 225) · display: system-ui · body: system-ui
+ * nav: none · signature: get-panel · states: 8
+ * axes: dark/grotesk-sans/chromatic-cyan · posture: centered · contrast: pass · v2.0.0 */
+/* Hallmark · pre-emit critique: P9 H9 E9 S9 R9 V9 · weakest: none, test fixture */
+:root {
+  --color-paper: oklch(14% 0.015 250);
+  --color-ink: oklch(98% 0.005 250);
+  --color-ink-2: oklch(76% 0.02 245);
+  --color-accent: oklch(76% 0.14 225);
+  --color-accent-ink: oklch(14% 0.015 250);
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { overflow-x: clip; }
+html { scrollbar-color: var(--color-ink-2) var(--color-paper); }
+::selection { background-color: var(--color-accent); color: var(--color-paper); }
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  text-align: center;
+  padding: 80px 16px;
+  line-height: 1.6;
+}
+h1 { font-size: 1.75rem; margin-bottom: 12px; text-wrap: balance; }
+p { color: var(--color-ink-2); font-size: 0.95rem; }
+    </style>
 </head>
 <body>
     <h1>Static File Access Succeeded</h1>

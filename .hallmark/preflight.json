@@ -1,0 +1,22 @@
+{
+  "scanned": "2026-10-30T14:32:00.000Z",
+  "findings": {
+    "fonts": "System UI (-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto) + Monospace (ui-monospace, 'SF Mono', Menlo) (DESIGN.md L38-39)",
+    "palette": "Slate & High-Precision Console (#090d16 canvas, #111827 card, #38bdf8 cyan, #10b981 green, #3b82f6 blue, #ef4444 red) (DESIGN.md L16-34)",
+    "motion": "Fast micro-transitions, prefers-reduced-motion fallback, no sluggish DOM animations (DESIGN.md L8)",
+    "spacing": "4px grid scale, 960px max container (DESIGN.md L75)",
+    "framework": "Vanilla HTML5 / CSS3 / ES6 (100% offline, zero external dependencies / CDNs) (PRODUCT.md L25, DESIGN.md L9)"
+  },
+  "preserve": [
+    "font stack",
+    "palette & semantic method badges",
+    "offline zero-dependency architecture",
+    "container measure & monospace data consoles"
+  ],
+  "introduce": [
+    "Floor compliance (no nested cards, no middle-dot meta strings, overflow-x clip)",
+    "strict tokenization (tokens.css and base.css)",
+    "accessible :focus-visible and 8-state control discipline",
+    "typography tightening (no uppercase tracked labels, true quotes/ellipses)"
+  ]
+}
