@@ -1,0 +1,21 @@
+[
+ {
+  "mode": "redesign",
+  "depth": "full",
+  "scope": "app",
+  "theme": "brand",
+  "prompt": "webserv systems console and testbed redesign for recruiters and technical leadership",
+  "shape": "app screen",
+  "signature": "live-telemetry-reactor",
+  "sections": [
+   "Architecture",
+   "Uploads",
+   "Storage Explorer",
+   "CGI Scripts",
+   "Session State",
+   "Routing Engine",
+   "Telemetry Console"
+  ],
+  "date": "2026-10-30"
+ }
+]
