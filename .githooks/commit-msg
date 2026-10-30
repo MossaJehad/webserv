@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly COMMIT_MSG_FILE="${1:-}"
+readonly TYPE_PATTERN="feat|fix|chore|docs|style|refactor|perf|test|build|ci|revert"
+readonly TASK_PATTERN="[A-Z][A-Z0-9]*-[0-9]+"
+readonly SUBJECT_PATTERN="^(${TYPE_PATTERN})\\(#(${TASK_PATTERN})\\):[[:space:]](.+)$"
+
+print_error_and_exit() {
+  local reason="$1"
+
+  cat >&2 <<EOF
+ERROR: Invalid commit message.
+Reason: ${reason}
+
+Required format:
+  <type>(#TASK-ID): <description>
+
+Allowed types:
+  feat, fix, chore, docs, style, refactor, perf, test, build, ci, revert
+
+TASK-ID format:
+  UPPERCASE-PROJECT-KEY + dash + number (example: DVA-55)
+
+Description length:
+  10 to 250 characters
+
+Example:
+  feat(#DVA-55): added new payment method to the payment portal
+EOF
+
+  exit 1
+}
+
+if [[ -z "$COMMIT_MSG_FILE" || ! -f "$COMMIT_MSG_FILE" ]]; then
+  echo "commit-msg hook error: commit message file path is missing or invalid." >&2
+  exit 1
+fi
+
+# Validate the first non-empty, non-comment line (the commit subject).
+subject="$(awk 'NF && $0 !~ /^#/ { print; exit }' "$COMMIT_MSG_FILE")"
+
+if [[ -z "$subject" ]]; then
+  print_error_and_exit "Commit message is empty."
+fi
+
+if [[ ! "$subject" =~ $SUBJECT_PATTERN ]]; then
+  print_error_and_exit "Commit subject does not match the required pattern."
+fi
+
+description="${BASH_REMATCH[3]}"
+description="$(printf '%s' "$description" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
+description_length=${#description}
+
+if (( description_length < 10 || description_length > 250 )); then
+  print_error_and_exit "Description must be between 10 and 250 characters (got ${description_length})."
+fi
+
+exit 0
